@@ -7,25 +7,11 @@ class RedeemService {
   Future<Database> get _db async => await DatabaseService.instance.database;
 
   static const int _pointsPerCode = 10;
-
-  final List<String> _validCodes = [
-    'EVENTFINDER10',
-    'FLUTTERKEREN',
-    'JEONGGEAN123',
-    'KODEBONUS50',
-    'MATKULMANTAP'
-  ];
-
   Future<int> redeemCode(String code) async {
     final userId = await _authService.getCurrentUserId();
     if (userId == null) {
       throw Exception("Anda harus login untuk menukar kode.");
     }
-
-    if (!_validCodes.contains(code)) {
-      throw Exception("Kode voucher tidak valid.");
-    }
-
     final db = await _db;
     try {
       await db.insert(

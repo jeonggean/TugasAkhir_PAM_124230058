@@ -1,5 +1,4 @@
 import 'dart:math';
-import 'package:intl/intl.dart';
 
 class EventModel {
   final String id;

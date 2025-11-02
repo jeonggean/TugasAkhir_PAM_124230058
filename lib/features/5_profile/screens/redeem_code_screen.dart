@@ -121,7 +121,7 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
     return Container(
       padding: const EdgeInsets.all(24.0),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: AppColors.kPrimaryColor,
         borderRadius: BorderRadius.circular(20.0),
       ),
       child: Column(
@@ -132,7 +132,7 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
             "Badge Anda Saat Ini",
             style: GoogleFonts.nunito(
               fontSize: 16,
-              color: AppColors.kSecondaryTextColor,
+              color: Colors.white,
             ),
           ),
           Text(
@@ -140,7 +140,7 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
             style: GoogleFonts.nunito(
               fontSize: 26,
               fontWeight: FontWeight.bold,
-              color: badge.color,
+              color: Colors.white,
             ),
           ),
           const SizedBox(height: 8),
@@ -149,7 +149,7 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
             style: GoogleFonts.nunito(
               fontSize: 20,
               fontWeight: FontWeight.w600,
-              color: AppColors.kTextColor,
+              color: Colors.white,
             ),
           ),
         ],

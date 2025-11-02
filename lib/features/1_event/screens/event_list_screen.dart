@@ -332,7 +332,7 @@ class _EventListScreenState extends State<EventListScreen> {
   Widget _buildPopularEventsList() {
     if (_controller.isLoadingPopular) {
       return Container(
-        height: 250,
+        height: 280,
         child: Center(
           child: CircularProgressIndicator(color: AppColors.kPrimaryColor),
         ),
@@ -450,7 +450,7 @@ class _EventListScreenState extends State<EventListScreen> {
     final displayEvents = _controller.regionalEvents.take(5).toList();
 
     return SizedBox(
-      height: 280,
+      height: 250,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -515,87 +515,85 @@ class _EventListScreenState extends State<EventListScreen> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        event.name,
-                        style: GoogleFonts.nunito(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.kTextColor,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      event.name,
+                      style: GoogleFonts.nunito(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.kTextColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.location_on,
+                          size: 13,
+                          color: AppColors.kSecondaryTextColor,
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 13,
-                            color: AppColors.kSecondaryTextColor,
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            event.venueCity != 'N/A'
+                                ? event.venueCity
+                                : event.venueCountry,
+                            style: GoogleFonts.nunito(
+                              fontSize: 12,
+                              color: AppColors.kSecondaryTextColor,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              event.venueCity != 'N/A'
-                                  ? event.venueCity
-                                  : event.venueCountry,
-                              style: GoogleFonts.nunito(
-                                fontSize: 12,
-                                color: AppColors.kSecondaryTextColor,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.kPrimaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            _formatCurrency(event.minPrice, event.currency),
+                            style: GoogleFonts.nunito(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.kPrimaryColor,
                             ),
                           ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today,
+                          size: 13,
+                          color: AppColors.kSecondaryTextColor,
+                        ),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            "${event.localDate} • ${event.localTime}",
+                            style: GoogleFonts.nunito(
+                              fontSize: 11,
+                              color: AppColors.kSecondaryTextColor,
                             ),
-                            decoration: BoxDecoration(
-                              color: AppColors.kPrimaryColor.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              _formatCurrency(event.minPrice, event.currency),
-                              style: GoogleFonts.nunito(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.kPrimaryColor,
-                              ),
-                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            size: 13,
-                            color: AppColors.kSecondaryTextColor,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              "${event.localDate} • ${event.localTime}",
-                              style: GoogleFonts.nunito(
-                                fontSize: 11,
-                                color: AppColors.kSecondaryTextColor,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ),
