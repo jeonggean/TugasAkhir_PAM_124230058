@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,7 +14,8 @@ class RedeemCodeScreen extends StatefulWidget {
   State<RedeemCodeScreen> createState() => _RedeemCodeScreenState();
 }
 
-class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
+class _RedeemCodeScreenState extends State<RedeemCodeScreen>
+    with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
   final RedeemService _redeemService = RedeemService();
   final TextEditingController _codeController = TextEditingController();
@@ -23,11 +25,23 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
   String? _errorMessage;
 
   final int _minCodeLength = 8;
+  bool _showConfetti = false;
+  late AnimationController _badgeController;
 
   @override
   void initState() {
     super.initState();
     _pointsFuture = _authService.getCurrentUserPoints();
+    _badgeController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 2))
+          ..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _badgeController.dispose();
+    _codeController.dispose();
+    super.dispose();
   }
 
   Future<void> _redeem() async {
@@ -36,6 +50,7 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
     setState(() {
       _isLoading = true;
       _errorMessage = null;
+      _showConfetti = false;
     });
 
     if (code.isEmpty) {
@@ -61,16 +76,23 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
 
       setState(() {
         _pointsFuture = Future.value(newPoints);
+        _showConfetti = true;
       });
 
+      await Future.delayed(const Duration(milliseconds: 300));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Berhasil! Poin Anda bertambah.'),
-            backgroundColor: Colors.green,
+            content: const Text('🎉 Kode berhasil! Poin Anda bertambah.'),
+            backgroundColor: Colors.green.shade600,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
+
+      Future.delayed(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _showConfetti = false);
+      });
     } catch (e) {
       setState(() {
         _errorMessage = e.toString().replaceAll("Exception: ", "");
@@ -85,75 +107,106 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.kBackgroundColor,
       appBar: AppBar(
-        title: Text("Tukar Kode & Badge"),
+        backgroundColor: AppColors.kPrimaryColor,
+        title: Text(
+          "Tukar Kode & Badge",
+          style: GoogleFonts.nunito(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        elevation: 0,
       ),
       body: FutureBuilder<int>(
         future: _pointsFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           final int currentPoints = snapshot.data ?? 0;
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildCurrentBadge(currentPoints),
-                const SizedBox(height: 32),
-                _buildRedeemForm(),
-                const SizedBox(height: 32),
-                _buildBadgeInfo(currentPoints),
-              ],
-            ),
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildAnimatedBadge(currentPoints),
+                    const SizedBox(height: 32),
+                    _buildRedeemForm(),
+                    const SizedBox(height: 32),
+                    _buildBadgeInfo(currentPoints),
+                  ],
+                ),
+              ),
+              if (_showConfetti) _buildConfettiAnimation(),
+            ],
           );
         },
       ),
     );
   }
 
-  Widget _buildCurrentBadge(int points) {
+  Widget _buildAnimatedBadge(int points) {
     final badge = BadgeService.getBadgeForPoints(points);
 
-    return Container(
-      padding: const EdgeInsets.all(24.0),
-      decoration: BoxDecoration(
-        color: AppColors.kPrimaryColor,
-        borderRadius: BorderRadius.circular(20.0),
-      ),
-      child: Column(
-        children: [
-          Icon(badge.icon, size: 80, color: badge.color),
-          const SizedBox(height: 16),
-          Text(
-            "Badge Anda Saat Ini",
-            style: GoogleFonts.nunito(
-              fontSize: 16,
-              color: Colors.white,
+    return AnimatedBuilder(
+      animation: _badgeController,
+      builder: (context, child) {
+        return Container(
+          padding: const EdgeInsets.all(28.0),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.kPrimaryColor.withOpacity(0.95),
+                AppColors.kPrimaryColor.withOpacity(0.75)
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
+            borderRadius: BorderRadius.circular(22.0),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.kPrimaryColor.withOpacity(0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
           ),
-          Text(
-            badge.name,
-            style: GoogleFonts.nunito(
-              fontSize: 26,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+          child: Column(
+            children: [
+              Transform.scale(
+                scale: 1 + 0.05 * sin(_badgeController.value * 2 * pi),
+                child: Icon(badge.icon, size: 80, color: badge.color),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                "Badge Anda Saat Ini",
+                style: GoogleFonts.nunito(fontSize: 16, color: Colors.white70),
+              ),
+              Text(
+                badge.name,
+                style: GoogleFonts.nunito(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                "$points Poin",
+                style: GoogleFonts.nunito(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            "$points Poin",
-            style: GoogleFonts.nunito(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -162,7 +215,7 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          "Tukar Kode Voucher",
+          "Masukkan Kode Voucher",
           style: GoogleFonts.nunito(
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -173,15 +226,16 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
         TextField(
           controller: _codeController,
           textCapitalization: TextCapitalization.characters,
-          style: TextStyle(color: AppColors.kTextColor),
+          style: TextStyle(color: AppColors.kTextColor, letterSpacing: 2),
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[A-Z0-9]')),
           ],
           decoration: InputDecoration(
-            hintText: 'Masukkan kode unik...',
+            prefixIcon: Icon(Icons.qr_code_2_rounded, color: AppColors.kPrimaryColor),
+            hintText: 'Ketik atau tempel kode unik...',
             hintStyle: TextStyle(color: AppColors.kSecondaryTextColor),
             filled: true,
-            fillColor: Theme.of(context).cardColor,
+            fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(15.0),
               borderSide: BorderSide.none,
@@ -190,27 +244,31 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
         ),
         if (_errorMessage != null)
           Padding(
-            padding: const EdgeInsets.only(top: 12.0),
+            padding: const EdgeInsets.only(top: 10),
             child: Text(
               _errorMessage!,
               textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(color: Colors.redAccent, fontSize: 15),
+              style: GoogleFonts.nunito(color: Colors.redAccent, fontSize: 14),
             ),
           ),
         const SizedBox(height: 16),
         ElevatedButton(
           onPressed: _isLoading ? null : _redeem,
-          child: _isLoading
-              ? SizedBox(
-                  height: 24,
-                  width: 24,
-                  child:
-                      CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
-                )
-              : Text("Tukar"),
           style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.kPrimaryColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             padding: const EdgeInsets.symmetric(vertical: 16),
           ),
+          child: _isLoading
+              ? const SizedBox(
+                  height: 24,
+                  width: 24,
+                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 3),
+                )
+              : Text(
+                  "Tukar Sekarang",
+                  style: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
         ),
       ],
     );
@@ -228,29 +286,25 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
             color: AppColors.kTextColor,
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 10),
         Container(
           decoration: BoxDecoration(
-            color: Theme.of(context).cardColor,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             children: BadgeService.allBadges.map((badge) {
-              String subtitleText;
-              Color subtitleColor = AppColors.kSecondaryTextColor;
-              FontWeight subtitleWeight = FontWeight.normal;
-
-              if (currentPoints >= badge.minPoints) {
-                subtitleText = "Tercapai";
-                subtitleColor = Colors.green;
-                subtitleWeight = FontWeight.bold;
-              } else {
-                final int pointsNeeded = badge.minPoints - currentPoints;
-                subtitleText = "Kurang $pointsNeeded Poin lagi";
-              }
-
+              final bool achieved = currentPoints >= badge.minPoints;
+              final int pointsNeeded = badge.minPoints - currentPoints;
               return ListTile(
-                leading: Icon(badge.icon, color: badge.color, size: 30),
+                leading: Icon(badge.icon, color: badge.color, size: 32),
                 title: Text(
                   badge.name,
                   style: GoogleFonts.nunito(
@@ -259,10 +313,10 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
                   ),
                 ),
                 subtitle: Text(
-                  subtitleText,
+                  achieved ? "Tercapai" : "Kurang $pointsNeeded Poin lagi",
                   style: GoogleFonts.nunito(
-                    color: subtitleColor,
-                    fontWeight: subtitleWeight,
+                    color: achieved ? Colors.green : AppColors.kSecondaryTextColor,
+                    fontWeight: achieved ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
                 trailing: Text(
@@ -275,8 +329,45 @@ class _RedeemCodeScreenState extends State<RedeemCodeScreen> {
               );
             }).toList(),
           ),
-        )
+        ),
       ],
+    );
+  }
+
+  Widget _buildConfettiAnimation() {
+    return IgnorePointer(
+      child: Stack(
+        children: List.generate(
+          25,
+          (index) {
+            final random = Random();
+            final left = random.nextDouble() * MediaQuery.of(context).size.width;
+            final top = random.nextDouble() * 200;
+            final size = random.nextDouble() * 10 + 6;
+            final color = [
+              Colors.yellow,
+              Colors.purple,
+              Colors.pink,
+              Colors.blue,
+              Colors.green
+            ][random.nextInt(5)];
+            return AnimatedPositioned(
+              duration: Duration(milliseconds: 800 + random.nextInt(800)),
+              curve: Curves.easeInOut,
+              left: left,
+              top: top,
+              child: Opacity(
+                opacity: 0.9,
+                child: Icon(
+                  Icons.circle,
+                  size: size,
+                  color: color.withOpacity(0.9),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }

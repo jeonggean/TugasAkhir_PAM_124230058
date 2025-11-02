@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import '../../1_event/models/event_model.dart';
 import '../../1_event/screens/event_detail_screen.dart';
 import '../services/friend_service.dart';
+import '../../../core/utils/app_colors.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class FriendFavoritesScreen extends StatefulWidget {
   final int friendId;
@@ -47,163 +48,206 @@ class _FriendFavoritesScreenState extends State<FriendFavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.kBackgroundColor,
       appBar: AppBar(
-        title: Text('Favorit ${widget.friendUsername}'),
+        backgroundColor: AppColors.kPrimaryColor,
+        elevation: 0,
+        title: Text(
+          'Acara Favorit ${widget.friendUsername}',
+          style: GoogleFonts.nunito(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
       ),
       body: FutureBuilder<List<EventModel>>(
         future: _favoritesFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(
-                child: Text('Gagal memuat favorit: ${snapshot.error}'));
+            return Center(child: Text('Gagal memuat favorit: ${snapshot.error}'));
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
-                child: Text(
-                    '${widget.friendUsername} tidak memiliki event favorit.'));
+                child: Text('${widget.friendUsername} tidak memiliki event favorit.'));
           }
 
           final List<EventModel> favoriteEvents = snapshot.data!;
-
-          return ListView.builder(
-            itemCount: favoriteEvents.length,
-            itemBuilder: (context, index) {
-              final event = favoriteEvents[index];
-              return _buildEventCard(event); 
-            },
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ListView.builder(
+              itemCount: favoriteEvents.length,
+              itemBuilder: (context, index) {
+                final event = favoriteEvents[index];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: _buildEventCard(event),
+                );
+              },
+            ),
           );
         },
       ),
     );
   }
 
-  Widget _buildEventCard(EventModel event) {
-    // Format date from the simplified EventModel (localDate)
-    String formattedDate = "Tanggal tidak tersedia";
-    if (event.localDate.isNotEmpty && event.localDate != 'No Date') {
-      try {
-        DateTime date = DateTime.parse(event.localDate);
-        formattedDate = DateFormat('d MMMM y', 'id_ID').format(date);
-      } catch (e) {
-        // jika parsing gagal, biarkan teks default
-      }
-    }
 
-    // Use the single imageUrl field available in EventModel
-    final imageUrl = event.imageUrl.isNotEmpty ? event.imageUrl : '';
-
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => EventDetailScreen(event: event),
-            ),
-          );
-        },
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (imageUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(16)),
+   Widget _buildEventCard(EventModel event) {
+  return InkWell(
+    onTap: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => EventDetailScreen(event: event),
+        ),
+      );
+    },
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
+              padding: const EdgeInsets.only(left: 4.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12.0),
                 child: Image.network(
-                  imageUrl,
-                  height: 180,
+                  event.imageUrl,
+                  height: 80,
+                  width: 80,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    height: 180,
-                    color: Colors.grey[300],
-                    child: Icon(Icons.broken_image,
-                        color: Colors.grey[600], size: 40),
+                    height: 80,
+                    width: 80,
+                    color: AppColors.kBackgroundColor,
+                    child: Icon(
+                      Icons.broken_image,
+                      size: 40,
+                      color: AppColors.kSecondaryTextColor,
+                    ),
                   ),
                 ),
-              )
-            else
-              Container(
-                height: 180,
-                decoration: BoxDecoration(
-                  color: Colors.grey[300],
-                  borderRadius:
-                      const BorderRadius.vertical(top: Radius.circular(16)),
-                ),
-                child: Icon(Icons.image, color: Colors.grey[600], size: 40),
               ),
-
-            Padding(
-              padding: const EdgeInsets.all(12.0),
+            ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     event.name,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    style: GoogleFonts.nunito(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   Row(
                     children: [
-                      Icon(Icons.calendar_today,
-                          size: 14, color: Theme.of(context).primaryColor),
-                      const SizedBox(width: 6),
+                      const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: Text(
-                          formattedDate,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                          event.venueCity != 'N/A'
+                              ? event.venueCity
+                              : event.venueCountry,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  // Show time and price range in a single row
-                  Row(
-                    children: [
-                      Icon(Icons.access_time,
-                          size: 14, color: Theme.of(context).primaryColor),
-                      const SizedBox(width: 6),
-                      Text(
-                        event.localTime != 'No Time' ? event.localTime : '-',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      const Spacer(),
-                      Text(
-                        '${event.currency} ${event.minPrice.toStringAsFixed(0)} - ${event.maxPrice.toStringAsFixed(0)}',
-                        style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ],
                   ),
                   const SizedBox(height: 4),
-                  // Use venueName and venueCity from simplified EventModel
-                  if (event.venueName.isNotEmpty || event.venueCity.isNotEmpty)
-                    Row(
-                      children: [
-                        Icon(Icons.location_on,
-                            size: 14, color: Theme.of(context).primaryColor),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            '${event.venueName}, ${event.venueCity}',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                            overflow: TextOverflow.ellipsis,
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          event.localDate,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.kPrimaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _formatCurrency(event.minPrice, event.currency),
+                          style: GoogleFonts.nunito(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.kPrimaryColor,
+                            fontSize: 13,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
+    ),
+  );
+}
+
+
+  String _formatCurrency(double? price, String currency) {
+    if (price == null) return 'Free';
+    
+    String symbol = '';
+    switch (currency.toUpperCase()) {
+      case 'USD':
+        symbol = '\$';
+        break;
+      case 'IDR':
+        symbol = 'Rp';
+        break;
+      case 'EUR':
+        symbol = '€';
+        break;
+      case 'GBP':
+        symbol = '£';
+        break;
+      default:
+        symbol = currency;
+    }
+
+    if (price == 0) return 'Free';
+    final priceStr = price.toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},'
     );
+    
+    return '$symbol$priceStr';
   }
 }

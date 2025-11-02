@@ -25,14 +25,13 @@ class FriendService {
     if (currentUserId == friendId) {
       throw Exception('Anda tidak dapat menambahkan diri sendiri.');
     }
-    
+
     final db = await _db;
     try {
-      await db.insert(
-        'friendships',
-        {'userId': currentUserId, 'friendId': friendId},
-        conflictAlgorithm: ConflictAlgorithm.fail,
-      );
+      await db.insert('friendships', {
+        'userId': currentUserId,
+        'friendId': friendId,
+      }, conflictAlgorithm: ConflictAlgorithm.fail);
     } on DatabaseException catch (e) {
       if (e.isUniqueConstraintError()) {
         throw Exception('Anda sudah berteman dengan pengguna ini.');
@@ -56,12 +55,15 @@ class FriendService {
     final db = await _db;
     // Query ini menggabungkan tabel friendships dengan users
     // untuk mendapatkan detail (username, points) dari friendId
-    final List<Map<String, dynamic>> maps = await db.rawQuery('''
+    final List<Map<String, dynamic>> maps = await db.rawQuery(
+      '''
       SELECT U.id, U.username, U.points 
       FROM users U 
       INNER JOIN friendships F ON U.id = F.friendId 
       WHERE F.userId = ?
-    ''', [currentUserId]);
+    ''',
+      [currentUserId],
+    );
 
     return maps;
   }
@@ -75,5 +77,22 @@ class FriendService {
       whereArgs: [friendId],
     );
     return maps;
+  }
+
+  Future<Map<String, dynamic>?> getUserById(int userId) async {
+    final db = await _db;
+
+    final List<Map<String, dynamic>> result = await db.query(
+      'users',
+      where: 'id = ?',
+      whereArgs: [userId],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    } else {
+      return null;
+    }
   }
 }

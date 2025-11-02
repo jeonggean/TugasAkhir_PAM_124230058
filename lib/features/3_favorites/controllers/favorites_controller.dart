@@ -30,4 +30,13 @@ class FavoritesController extends ChangeNotifier {
     _isLoading = false;
     notifyListeners();
   }
+
+  Future<void> removeFromFavorites(dynamic id) async {
+    try {
+      await _service.removeFavorite(id);
+      await loadFavorites();
+    } catch (e) {
+      print("Gagal menghapus favorit: $e");
+    }
+  }
 }

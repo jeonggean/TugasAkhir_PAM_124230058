@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:eventfinder/core/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,14 +17,19 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends State<ProfileScreen>
+    with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
   late Future<Map<String, dynamic>> _userDataFuture;
+  late AnimationController _badgeController;
 
   @override
   void initState() {
     super.initState();
     _userDataFuture = _loadUserData();
+    _badgeController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 3))
+          ..repeat(reverse: true);
   }
 
   Future<Map<String, dynamic>> _loadUserData() async {
@@ -36,45 +42,57 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _logout() async {
-    await _authService.logout();
-    if (mounted) {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => LoginScreen()),
-        (Route<dynamic> route) => false,
-      );
+    final confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Konfirmasi Logout"),
+        content: const Text("Apakah Anda yakin ingin keluar dari akun ini?"),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text("Batal")),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text("Keluar",
+                  style: TextStyle(color: Colors.redAccent))),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await _authService.logout();
+      if (mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+          (route) => false,
+        );
+      }
     }
   }
 
-  void _goToAboutScreen() {
+  void _navigateTo(Widget screen) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => AboutScreen()),
-    );
-  }
-
-  void _goToDeveloperInfoScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DeveloperInfoScreen()),
-    );
-  }
-
-  void _goToFeedbackScreen() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const FeedbackScreen()),
-    );
-  }
-
-  void _goToRedeemCodeScreen() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const RedeemCodeScreen()),
-    );
-    setState(() {
-      _userDataFuture = _loadUserData();
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => screen,
+        transitionsBuilder: (_, animation, __, child) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+        transitionDuration: const Duration(milliseconds: 300),
+      ),
+    ).then((_) {
+      setState(() {
+        _userDataFuture = _loadUserData();
+      });
     });
+  }
+
+  @override
+  void dispose() {
+    _badgeController.dispose();
+    super.dispose();
   }
 
   @override
@@ -85,16 +103,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         future: _userDataFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
-          final username = snapshot.data?['username'] as String?;
+          final username = snapshot.data?['username'] as String? ?? 'Pengguna';
           final points = snapshot.data?['points'] as int? ?? 0;
           final badge = BadgeService.getBadgeForPoints(points);
 
           return Column(
             children: [
-              _buildProfileHeader(username, badge),
+              _buildProfileHeader(username, points, badge),
               Expanded(
                 child: SingleChildScrollView(
                   child: _buildProfileMenu(),
@@ -107,71 +125,87 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(String? username, BadgeInfo badge) {
+  Widget _buildProfileHeader(String username, int points, BadgeInfo badge) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.only(bottom: 24.0),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
             AppColors.kPrimaryColor,
-            Color.lerp(AppColors.kPrimaryColor, Colors.black, 0.3)!
+            Color.lerp(AppColors.kPrimaryColor, Colors.black, 0.25)!
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(40)),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(40)),
       ),
       child: SafeArea(
-        child: Column(
-          children: [
-             const SizedBox(height: 16),
-            CircleAvatar(
-              radius: 60,
-              backgroundColor: Colors.white.withOpacity(0.2),
-              child: CircleAvatar(
-                radius: 56,
-                backgroundColor: AppColors.kCardColor,
-                child: Icon(
-                  Icons.person,
-                  size: 60,
-                  color: AppColors.kPrimaryColor,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 32.0, horizontal: 20),
+          child: Column(
+            children: [
+              CircleAvatar(
+                radius: 58,
+                backgroundColor: Colors.white.withOpacity(0.25),
+                child: CircleAvatar(
+                  radius: 54,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person,
+                      size: 60, color: AppColors.kPrimaryColor),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              username ?? 'Pengguna',
-              style: GoogleFonts.nunito(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+              const SizedBox(height: 18),
+              Text(
+                username,
+                style: GoogleFonts.nunito(
+                  fontSize: 23,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
+              const SizedBox(height: 8),
+              Text(
+                "$points Poin",
+                style: GoogleFonts.nunito(
+                  color: Colors.white70,
+                  fontSize: 15,
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(badge.icon, color: Colors.white, size: 18),
-                  const SizedBox(width: 8),
-                  Text(
-                    badge.name,
-                    style: GoogleFonts.nunito(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+              const SizedBox(height: 16),
+              AnimatedBuilder(
+                animation: _badgeController,
+                builder: (context, child) {
+                  final pulse = 1 + 0.06 * sin(_badgeController.value * 2 * pi);
+                  return Transform.scale(
+                    scale: pulse,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.25),
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(badge.icon, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            badge.name,
+                            style: GoogleFonts.nunito(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -179,50 +213,53 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildProfileMenu() {
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
       child: Container(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          color: AppColors.kCardColor,
-          borderRadius: BorderRadius.circular(20.0),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Column(
           children: [
             _buildMenuTile(
               icon: Icons.confirmation_number_outlined,
               title: "Tukar Kode Voucher",
-              onTap: _goToRedeemCodeScreen,
+              onTap: () => _navigateTo(const RedeemCodeScreen()),
               color: AppColors.kPrimaryColor,
             ),
             Divider(color: Colors.grey.shade300),
-            const SizedBox(height: 4),
             _buildMenuTile(
               icon: Icons.code,
               title: "Informasi Developer",
-              onTap: _goToDeveloperInfoScreen,
+              onTap: () => _navigateTo(const DeveloperInfoScreen()),
               color: Colors.blueAccent,
             ),
             Divider(color: Colors.grey.shade300),
-            const SizedBox(height: 4),
             _buildMenuTile(
               icon: Icons.feedback_outlined,
-              title: "Saran dan Kesan Pesan",
-              onTap: _goToFeedbackScreen,
+              title: "Saran & Kesan",
+              onTap: () => _navigateTo(const FeedbackScreen()),
               color: Colors.orangeAccent,
             ),
             Divider(color: Colors.grey.shade300),
-            const SizedBox(height: 4),
             _buildMenuTile(
               icon: Icons.info_outline,
               title: "Tentang Aplikasi",
-              onTap: _goToAboutScreen,
+              onTap: () => _navigateTo(AboutScreen()),
               color: Colors.green,
             ),
             Divider(color: Colors.grey.shade300),
-            const SizedBox(height: 4),
             _buildMenuTile(
               icon: Icons.logout,
-              title: "Logout",
+              title: "Keluar Akun",
               onTap: _logout,
               color: Colors.redAccent,
               isLogout: true,
@@ -241,18 +278,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     bool isLogout = false,
   }) {
     final tileColor = color ?? AppColors.kPrimaryColor;
-
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12.0),
+      borderRadius: BorderRadius.circular(12),
+      splashColor: tileColor.withOpacity(0.15),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12.0),
+        padding: const EdgeInsets.symmetric(vertical: 14.0),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
-                color: tileColor.withOpacity(0.1),
+                color: tileColor.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: tileColor, size: 22),
@@ -264,16 +301,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 style: GoogleFonts.nunito(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: isLogout ? Colors.redAccent : AppColors.kTextColor,
+                  color:
+                      isLogout ? Colors.redAccent : AppColors.kSecondaryTextColor,
                 ),
               ),
             ),
-            if (!isLogout)
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 18,
-                color: AppColors.kSecondaryTextColor,
-              ),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 18,
+              color: isLogout
+                  ? Colors.redAccent.withOpacity(0.7)
+                  : AppColors.kSecondaryTextColor,
+            ),
           ],
         ),
       ),

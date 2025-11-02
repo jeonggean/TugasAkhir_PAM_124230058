@@ -39,15 +39,34 @@ class _RegionalEventsScreenState extends State<RegionalEventsScreen> {
     super.dispose();
   }
 
-  String _formatCurrency(double price, String currencyCode) {
-    if (price == 0.0 && currencyCode == 'N/A') return "N/A";
-    if (price == 0.0) return "Free";
-    final format = NumberFormat.currency(
-      locale: 'en_US',
-      symbol: "$currencyCode ",
-      decimalDigits: 0,
+  String _formatCurrency(double? price, String currency) {
+    if (price == null) return 'Free';
+    
+    String symbol = '';
+    switch (currency.toUpperCase()) {
+      case 'USD':
+        symbol = '\$';
+        break;
+      case 'IDR':
+        symbol = 'Rp';
+        break;
+      case 'EUR':
+        symbol = '€';
+        break;
+      case 'GBP':
+        symbol = '£';
+        break;
+      default:
+        symbol = currency;
+    }
+
+    if (price == 0) return 'Free';
+    final priceStr = price.toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},'
     );
-    return format.format(price);
+    
+    return '$symbol$priceStr';
   }
 
   List<EventModel> get _filteredEvents {
@@ -185,34 +204,32 @@ class _RegionalEventsScreenState extends State<RegionalEventsScreen> {
         );
       },
       child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.kCardColor,
-          borderRadius: BorderRadius.circular(16.0),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.kPrimaryColor.withOpacity(0.08),
-              spreadRadius: 1,
-              blurRadius: 6,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-
-            Padding(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Padding(
               padding: const EdgeInsets.only(left: 4.0),
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12.0),
                 child: Image.network(
                   event.imageUrl,
-                  height: 100,
-                  width: 100,
+                  height: 80,
+                  width: 80,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
-                    height: 100,
-                    width: 100,
+                    height: 80,
+                    width: 80,
                     color: AppColors.kBackgroundColor,
                     child: Icon(
                       Icons.broken_image,
@@ -223,69 +240,73 @@ class _RegionalEventsScreenState extends State<RegionalEventsScreen> {
                 ),
               ),
             ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      event.name,
-                      style: GoogleFonts.nunito(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: AppColors.kTextColor,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.name,
+                    style: GoogleFonts.nunito(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(Icons.location_on, size: 14, color: AppColors.kSecondaryTextColor),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: Text(
-                            event.venueCity != 'N/A' ? event.venueCity : event.venueCountry,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppColors.kSecondaryTextColor,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          event.venueCity != 'N/A'
+                              ? event.venueCity
+                              : event.venueCountry,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        Icon(Icons.calendar_today, size: 14, color: AppColors.kSecondaryTextColor),
-                        const SizedBox(width: 4),
-                        Text(
-                          "${event.localDate}",
-                          style: TextStyle(
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          event.localDate,
+                          style: const TextStyle(
                             fontSize: 12,
-                            color: AppColors.kSecondaryTextColor,
+                            color: Colors.grey,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.kPrimaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          _formatCurrency(event.minPrice, event.currency),
+                          style: GoogleFonts.nunito(
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.kPrimaryColor,
+                            fontSize: 13,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.kPrimaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
                       ),
-                      child: Text(
-                        _formatCurrency(event.minPrice, event.currency),
-                        style: GoogleFonts.nunito(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.kPrimaryColor,
-                        ),
-                      ),
-                    ),
                       ],
                     ),
                     

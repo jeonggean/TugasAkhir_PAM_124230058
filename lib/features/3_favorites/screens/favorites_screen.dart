@@ -1,11 +1,11 @@
 import 'package:eventfinder/core/utils/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
-
 import '../../1_event/models/event_model.dart';
 import '../../1_event/screens/event_detail_screen.dart';
 import '../controllers/favorites_controller.dart';
+import '../../1_event/screens/popular_events_screen.dart';
 
 class FavoritesScreen extends StatefulWidget {
   const FavoritesScreen({super.key});
@@ -26,7 +26,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     _controller.addListener(() {
       if (mounted) setState(() {});
     });
-
     _controller.loadFavorites();
 
     _searchController.addListener(() {
@@ -43,29 +42,78 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     super.dispose();
   }
 
-  String _formatCurrency(double price, String currencyCode) {
-    if (price == 0.0 && currencyCode == 'N/A') return "N/A";
-    if (price == 0.0) return "Gratis";
-    final format = NumberFormat.currency(
-      locale: 'en_US',
-      symbol: "$currencyCode ",
-      decimalDigits: 2,
+  String _formatCurrency(double? price, String currency) {
+    if (price == null) return 'Free';
+    String symbol = '';
+    switch (currency.toUpperCase()) {
+      case 'USD':
+        symbol = '\$';
+        break;
+      case 'IDR':
+        symbol = 'Rp';
+        break;
+      case 'EUR':
+        symbol = '€';
+        break;
+      case 'GBP':
+        symbol = '£';
+        break;
+      default:
+        symbol = currency;
+    }
+
+    if (price == 0) return 'Free';
+    final priceStr = price.toInt().toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
     );
-    return format.format(price);
+    return '$symbol$priceStr';
+  }
+
+  Future<bool> _confirmDelete(String name) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Hapus dari Favorit'),
+            content: Text('Hapus "$name" dari daftar favorit?'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
+            ],
+          ),
+        ) ??
+        false;
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-       appBar: AppBar(
+      appBar: AppBar(
         title: Text(
-          'Acara Favorite',
+          'Acara Favorit',
           style: GoogleFonts.nunito(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: AppColors.kPrimaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
+      floatingActionButton: FloatingActionButton(
+      backgroundColor: AppColors.kPrimaryColor,
+      onPressed: () async {
+        // misal kamu mau navigasi sambil kirim data popular event
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PopularEventsScreen(
+              popularEvents: _controller.favorites, // contoh data dummy
+              isLoading: false, // atau true kalau mau nunjukin loading dulu
+            ),
+          ),
+        );
+        _controller.loadFavorites();
+      },
+      child: const Icon(Icons.add, color: Colors.white),
+    ),
       body: Column(
         children: [
           _buildSearchBar(),
@@ -76,7 +124,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildSearchBar() {
-   return Container(
+    return Container(
       color: AppColors.kPrimaryColor,
       padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 16.0),
       child: Container(
@@ -94,9 +142,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
                     icon: Icon(Icons.clear, color: AppColors.kSecondaryTextColor),
-                    onPressed: () {
-                      _searchController.clear();
-                    },
+                    onPressed: () => _searchController.clear(),
                   )
                 : null,
             border: InputBorder.none,
@@ -110,8 +156,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget _buildBody() {
     if (_controller.isLoading) {
       return Center(
-          child: CircularProgressIndicator(
-              color: Theme.of(context).colorScheme.primary));
+          child: CircularProgressIndicator(color: AppColors.kPrimaryColor));
     }
 
     final List<EventModel> filteredFavorites;
@@ -124,19 +169,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     if (filteredFavorites.isEmpty) {
-      if (_searchQuery.isNotEmpty) {
-        return Center(
-          child: Text(
-            'Tidak ada favorit ditemukan untuk "$_searchQuery".',
-            textAlign: TextAlign.center,
-            style: GoogleFonts.nunito(
-                fontSize: 16, color: AppColors.kSecondaryTextColor),
-          ),
-        );
-      }
       return Center(
         child: Text(
-          'Kamu belum punya acara favorit.',
+          _searchQuery.isNotEmpty
+              ? 'Tidak ada favorit untuk "$_searchQuery".'
+              : 'Kamu belum punya acara favorit.',
+          textAlign: TextAlign.center,
           style: GoogleFonts.nunito(
               fontSize: 16, color: AppColors.kSecondaryTextColor),
         ),
@@ -144,104 +182,157 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     return ListView.separated(
-      padding: const EdgeInsets.fromLTRB(24.0, 8.0, 24.0, 24.0),
+      padding: const EdgeInsets.fromLTRB(24.0, 8.0, 24.0, 80.0),
       itemCount: filteredFavorites.length,
       separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
-        final EventModel event = filteredFavorites[index];
-        return _buildEventCard(event);
+        final event = filteredFavorites[index];
+        return _buildSlidableCard(event);
       },
     );
   }
 
-  Widget _buildEventCard(EventModel event) {
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => EventDetailScreen(event: event),
+  Widget _buildSlidableCard(EventModel event) {
+    return Slidable(
+      key: ValueKey(event.id ?? event.name),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.25,
+        children: [
+          SlidableAction(
+            onPressed: (context) async {
+              final ok = await _confirmDelete(event.name);
+              if (ok) {
+                await _controller.removeFromFavorites(event.id ?? event.name);
+                _controller.loadFavorites();
+              }
+            },
+            backgroundColor: Colors.red.shade600,
+            foregroundColor: Colors.white,
+            icon: Icons.delete_outline,
+            borderRadius: BorderRadius.circular(12),
           ),
-        ).then((_) {
+        ],
+      ),
+      child: InkWell(
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => EventDetailScreen(event: event)),
+          );
           _controller.loadFavorites();
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.all(12.0),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(16.0),
-        ),
-        child: Row(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12.0),
-              child: Image.network(
-                event.imageUrl,
-                height: 80,
-                width: 80,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  height: 80,
-                  width: 80,
-                  color: AppColors.kBackgroundColor,
-                  child: const Icon(
-                    Icons.broken_image,
-                    size: 40,
-                    color: AppColors.kSecondaryTextColor,
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12.0),
+                  child: Image.network(
+                    event.imageUrl,
+                    height: 80,
+                    width: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 80,
+                      width: 80,
+                      color: AppColors.kBackgroundColor,
+                      child: Icon(
+                        Icons.broken_image,
+                        size: 40,
+                        color: AppColors.kSecondaryTextColor,
+                      ),
+                    ),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    event.name,
-                    style: GoogleFonts.nunito(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 17,
-                      color: AppColors.kTextColor,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.calendar_today,
-                          size: 14, color: AppColors.kSecondaryTextColor),
-                      const SizedBox(width: 6),
                       Text(
-                        "${event.localDate} @ ${event.localTime}",
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.kSecondaryTextColor,
+                        event.name,
+                        style: GoogleFonts.nunito(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              event.venueCity != 'N/A'
+                                  ? event.venueCity
+                                  : event.venueCountry,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              event.localDate,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const Spacer(),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: AppColors.kPrimaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              _formatCurrency(event.minPrice, event.currency),
+                              style: GoogleFonts.nunito(
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.kPrimaryColor,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.attach_money,
-                          size: 14, color: AppColors.kSecondaryTextColor),
-                      const SizedBox(width: 6),
-                      Text(
-                        _formatCurrency(event.minPrice, event.currency),
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: AppColors.kSecondaryTextColor,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
