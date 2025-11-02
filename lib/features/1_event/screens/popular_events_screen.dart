@@ -197,24 +197,28 @@ class _PopularEventsScreenState extends State<PopularEventsScreen> {
             ),
           ],
         ),
+        
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(12.0),
-              child: Image.network(
-                event.imageUrl,
-                height: 80,
-                width: 80,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ClipRRect(  
+                borderRadius: BorderRadius.circular(12.0),
+                child: Image.network(
+                  event.imageUrl,
                   height: 80,
                   width: 80,
-                  color: AppColors.kBackgroundColor,
-                  child: const Icon(
-                    Icons.broken_image,
-                    size: 40,
-                    color: AppColors.kSecondaryTextColor,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 80,
+                    width: 80,
+                    color: AppColors.kBackgroundColor,
+                    child: const Icon(
+                      Icons.broken_image,
+                      size: 40,
+                      color: AppColors.kSecondaryTextColor,
+                    ),
                   ),
                 ),
               ),
@@ -265,24 +269,24 @@ class _PopularEventsScreenState extends State<PopularEventsScreen> {
                             color: AppColors.kSecondaryTextColor,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.kPrimaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        _formatCurrency(event.minPrice, event.currency),
-                        style: GoogleFonts.nunito(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.kPrimaryColor,
+                        Container(
+                          margin: const EdgeInsets.only(left: 16),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppColors.kPrimaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            _formatCurrency(event.minPrice, event.currency),
+                            style: GoogleFonts.nunito(
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.kPrimaryColor,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
+                      ],
+                    ),                    
                   ],
                 ),
               ),

@@ -198,23 +198,27 @@ class _RegionalEventsScreenState extends State<RegionalEventsScreen> {
           ],
         ),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.horizontal(left: Radius.circular(16.0)),
-              child: Image.network(
-                event.imageUrl,
-                height: 100,
-                width: 100,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
+
+            Padding(
+              padding: const EdgeInsets.only(left: 4.0),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12.0),
+                child: Image.network(
+                  event.imageUrl,
                   height: 100,
                   width: 100,
-                  color: AppColors.kBackgroundColor,
-                  child: Icon(
-                    Icons.broken_image,
-                    size: 40,
-                    color: AppColors.kSecondaryTextColor,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) => Container(
+                    height: 100,
+                    width: 100,
+                    color: AppColors.kBackgroundColor,
+                    child: Icon(
+                      Icons.broken_image,
+                      size: 40,
+                      color: AppColors.kSecondaryTextColor,
+                    ),
                   ),
                 ),
               ),
@@ -251,6 +255,7 @@ class _RegionalEventsScreenState extends State<RegionalEventsScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
+                        
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -265,9 +270,7 @@ class _RegionalEventsScreenState extends State<RegionalEventsScreen> {
                             color: AppColors.kSecondaryTextColor,
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
+                        const SizedBox(height: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
@@ -283,6 +286,9 @@ class _RegionalEventsScreenState extends State<RegionalEventsScreen> {
                         ),
                       ),
                     ),
+                      ],
+                    ),
+                    
                   ],
                 ),
               ),

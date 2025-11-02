@@ -13,6 +13,7 @@ class EventModel {
   final String venueName;
   final String venueCity;
   final String venueCountry;
+  final String json;
 
   EventModel({
     required this.id,
@@ -27,6 +28,7 @@ class EventModel {
     required this.venueName,
     required this.venueCity,
     required this.venueCountry,
+    required this.json,
   });
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -59,14 +61,18 @@ class EventModel {
     double maxPrice;
 
     String getVenueName(Map<String, dynamic>? embedded) {
-      if (embedded == null || !embedded.containsKey('venues') || (embedded['venues'] as List).isEmpty) {
+      if (embedded == null ||
+          !embedded.containsKey('venues') ||
+          (embedded['venues'] as List).isEmpty) {
         return "Lokasi tidak tersedia";
       }
       return embedded['venues'][0]['name'] ?? "Lokasi tidak tersedia";
     }
 
     String getVenueCity(Map<String, dynamic>? embedded) {
-      if (embedded == null || !embedded.containsKey('venues') || (embedded['venues'] as List).isEmpty) {
+      if (embedded == null ||
+          !embedded.containsKey('venues') ||
+          (embedded['venues'] as List).isEmpty) {
         return "N/A";
       }
       final venue = embedded['venues'][0];
@@ -77,7 +83,9 @@ class EventModel {
     }
 
     String getVenueCountry(Map<String, dynamic>? embedded) {
-      if (embedded == null || !embedded.containsKey('venues') || (embedded['venues'] as List).isEmpty) {
+      if (embedded == null ||
+          !embedded.containsKey('venues') ||
+          (embedded['venues'] as List).isEmpty) {
         return "N/A";
       }
       final venue = embedded['venues'][0];
@@ -115,13 +123,9 @@ class EventModel {
       name: json['name'] ?? 'No Name',
       imageUrl: json['imageUrl'] ?? getImageUrl(json),
       localDate:
-          json['localDate'] ??
-          json['dates']?['start']?['localDate'] ??
-          'No Date',
+          json['localDate'] ?? json['dates']?['start']?['localDate'] ?? 'No Date',
       localTime:
-          json['localTime'] ??
-          json['dates']?['start']?['localTime'] ??
-          'No Time',
+          json['localTime'] ?? json['dates']?['start']?['localTime'] ?? 'No Time',
       timezone: json['timezone'] ?? json['dates']?['timezone'] ?? 'N/A',
       currency: currency,
       minPrice: minPrice,
@@ -129,6 +133,25 @@ class EventModel {
       venueName: getVenueName(embeddedData),
       venueCity: getVenueCity(embeddedData),
       venueCountry: getVenueCountry(embeddedData),
+      json: json.toString(),
+    );
+  }
+
+  factory EventModel.fromMap(Map<String, dynamic> map) {
+    return EventModel(
+      id: map['eventId'] ?? map['id'],
+      name: map['name'] ?? 'No Name',
+      imageUrl: map['imageUrl'] ?? 'https://i.imgur.com/gA1q3nJ.png',
+      localDate: map['localDate'] ?? 'No Date',
+      localTime: map['localTime'] ?? 'No Time',
+      timezone: map['timezone'] ?? 'N/A',
+      currency: map['currency'] ?? 'USD',
+      minPrice: (map['minPrice'] as num?)?.toDouble() ?? 0.0,
+      maxPrice: (map['maxPrice'] as num?)?.toDouble() ?? 0.0,
+      venueName: map['venueName'] ?? 'Lokasi tidak tersedia',
+      venueCity: map['venueCity'] ?? 'N/A',
+      venueCountry: map['venueCountry'] ?? 'N/A',
+      json: map['json'] ?? '{}',
     );
   }
 
@@ -146,6 +169,21 @@ class EventModel {
       'venueName': venueName,
       'venueCity': venueCity,
       'venueCountry': venueCountry,
+    };
+  }
+
+  Map<String, dynamic> toMap() {
+    return {
+      'eventId': id,
+      'name': name,
+      'imageUrl': imageUrl,
+      'localDate': localDate,
+      'localTime': localTime,
+      'venueCity': venueCity,
+      'venueCountry': venueCountry,
+      'minPrice': minPrice,
+      'currency': currency,
+      'json': json,
     };
   }
 }
