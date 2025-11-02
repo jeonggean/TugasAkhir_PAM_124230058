@@ -57,8 +57,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Favorit Saya'),
+       appBar: AppBar(
+        title: Text(
+          'Acara Favorite',
+          style: GoogleFonts.nunito(fontWeight: FontWeight.bold, color: Colors.white),
+        ),
+        backgroundColor: AppColors.kPrimaryColor,
+        foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: Column(
         children: [
@@ -70,30 +76,32 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 8.0),
-      child: TextField(
-        controller: _searchController,
-        style: TextStyle(color: AppColors.kTextColor),
-        decoration: InputDecoration(
-          hintText: 'Cari di favorit...',
-          hintStyle: TextStyle(color: AppColors.kSecondaryTextColor),
-          prefixIcon: Icon(Icons.search, color: AppColors.kSecondaryTextColor),
-          suffixIcon: _searchQuery.isNotEmpty
-              ? IconButton(
-                  icon: Icon(Icons.clear, color: AppColors.kSecondaryTextColor),
-                  onPressed: () {
-                    _searchController.clear();
-                  },
-                )
-              : null,
-          filled: true,
-          fillColor: Theme.of(context).cardColor,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15.0),
-            borderSide: BorderSide.none,
+   return Container(
+      color: AppColors.kPrimaryColor,
+      padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 16.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16.0),
+        ),
+        child: TextField(
+          controller: _searchController,
+          style: TextStyle(color: AppColors.kTextColor),
+          decoration: InputDecoration(
+            hintText: 'Cari acara populer...',
+            hintStyle: TextStyle(color: AppColors.kSecondaryTextColor),
+            prefixIcon: Icon(Icons.search, color: AppColors.kPrimaryColor),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: Icon(Icons.clear, color: AppColors.kSecondaryTextColor),
+                    onPressed: () {
+                      _searchController.clear();
+                    },
+                  )
+                : null,
+            border: InputBorder.none,
+            contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
           ),
-          contentPadding: const EdgeInsets.symmetric(vertical: 16.0),
         ),
       ),
     );

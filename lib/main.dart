@@ -8,19 +8,17 @@ import 'features/2_auth/services/auth_service.dart';
 import 'features/2_auth/screens/login_screen.dart';
 import 'core/services/notification_service.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'features/5_profile/screens/feedback_screen.dart';
+import 'features/5_profile/screens/developer_info_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  try {
-    await DatabaseService.instance.database;
-    await NotificationService.initNotifications();
-    await NotificationService.requestNotificationPermission();
-    await initializeDateFormatting('id_ID', null);
-    tz.initializeTimeZones();
-  } catch (e) {
-    print('Error initializing services: $e');
-  }
+  await DatabaseService.instance.database;
+  await NotificationService.initNotifications();
+  await NotificationService.requestNotificationPermission();
+  await initializeDateFormatting('id_ID', null);
+  tz.initializeTimeZones();
 
   runApp(const MyApp());
 }
@@ -31,7 +29,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Event Finder',
+      title: 'Event Finder (MVC)',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.light().copyWith(
         scaffoldBackgroundColor: AppColors.kBackgroundColor,
@@ -54,22 +52,20 @@ class MyApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.nunitoTextTheme(ThemeData.light().textTheme)
             .apply(
-              bodyColor: AppColors.kTextColor,
-              displayColor: AppColors.kTextColor,
-            ),
+          bodyColor: AppColors.kTextColor,
+          displayColor: AppColors.kTextColor,
+        ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.kPrimaryColor,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            textStyle: GoogleFonts.nunito(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-            ),
-          ),
+              backgroundColor: AppColors.kPrimaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              textStyle: GoogleFonts.nunito(
+                  fontWeight: FontWeight.bold, fontSize: 16)),
         ),
         cardTheme: CardThemeData(
           clipBehavior: Clip.antiAlias,
@@ -81,6 +77,10 @@ class MyApp extends StatelessWidget {
         ),
       ),
       home: SplashScreen(),
+      routes: {
+        '/feedback': (context) => const FeedbackScreen(),
+        '/developer': (context) => const DeveloperInfoScreen(),
+      },
     );
   }
 }
@@ -122,9 +122,9 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: CircularProgressIndicator(color: AppColors.kPrimaryColor),
-      ),
-    );
+        body: Center(
+            child: CircularProgressIndicator(
+      color: AppColors.kPrimaryColor,
+    )));
   }
 }

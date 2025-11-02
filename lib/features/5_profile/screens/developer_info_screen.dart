@@ -32,7 +32,7 @@ class DeveloperInfoScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              "Information System Student",
+              "UPN Veteran Yogyakarta",
               textAlign: TextAlign.center,
               style: GoogleFonts.nunito(
                 fontSize: 18,

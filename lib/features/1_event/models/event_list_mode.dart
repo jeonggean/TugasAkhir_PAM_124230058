@@ -1,0 +1,4 @@
+enum EventListMode {
+  regional,
+  popular
+}

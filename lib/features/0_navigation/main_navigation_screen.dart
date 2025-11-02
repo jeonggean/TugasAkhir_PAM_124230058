@@ -21,10 +21,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     });
   }
 
-  // JANGAN buat list di sini
-  // final List<Widget> _screens = [ ... ];
-
-  // Buat fungsi untuk mendapatkan layar
   Widget _getCurrentScreen() {
     switch (_selectedIndex) {
       case 0:
