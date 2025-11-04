@@ -16,16 +16,13 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  // HAPUS: 'late final FavoritesController _controller'
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
 
   @override
   void initState() {
     super.initState();
-    // HAPUS: Semua yang berhubungan dengan _controller
-    // Data sudah di-load oleh Provider di MainNavigationScreen
-
+    
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
@@ -36,11 +33,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   void dispose() {
     _searchController.dispose();
-    // HAPUS: _controller.dispose();
     super.dispose();
   }
 
-  // ... (Method _formatCurrency dan _confirmDelete tetap sama)
   String _formatCurrency(double? price, String currency) {
     if (price == null) return 'Free';
     String symbol = '';

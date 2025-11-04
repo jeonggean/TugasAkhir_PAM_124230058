@@ -79,7 +79,7 @@ class DatabaseService {
     await db.execute('CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status)');
   }
 
-  // 🔹 Dijalankan saat versi database dinaikkan
+
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
     // v2: tambah points dan redeemed_codes
     if (oldVersion < 2) {
@@ -140,11 +140,9 @@ class DatabaseService {
         print("Gagal migrasi data lama: $e");
       }
 
-      // 3️⃣ Ganti tabel lama
       await db.execute('DROP TABLE IF EXISTS friendships');
       await db.execute('ALTER TABLE friendships_new RENAME TO friendships');
 
-      // 4️⃣ Tambahkan index baru
       await db.execute('CREATE INDEX IF NOT EXISTS idx_friendships_req_rec ON friendships(requesterId, receiverId)');
       await db.execute('CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status)');
     }

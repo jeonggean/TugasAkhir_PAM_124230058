@@ -3,6 +3,7 @@ import 'package:eventfinder/features/1_event/screens/event_list_screen.dart';
 import 'package:eventfinder/features/3_favorites/controllers/favorites_controller.dart';
 import 'package:eventfinder/features/3_favorites/screens/favorites_screen.dart';
 import 'package:eventfinder/features/6_friends/screens/friends_screen.dart';
+import 'package:eventfinder/features/6_friends/controllers/friend_controller.dart';
 import 'package:eventfinder/features/5_profile/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -28,13 +29,15 @@ class MainNavigationScreen extends StatelessWidget {
         ChangeNotifierProvider(
           create: (context) => FavoritesController()..loadFavorites(),
         ),
+        ChangeNotifierProvider(
+          create: (context) => FriendsController()..loadInitialData(),
+        ),
       ],
     
       child: Consumer<MainNavigationController>(
         builder: (context, controller, child) {
           return Scaffold(
             body: Center(
-              // Tampilkan halaman berdasarkan index dari controller
               child: _widgetOptions.elementAt(controller.selectedIndex),
             ),
             bottomNavigationBar: BottomNavigationBar(

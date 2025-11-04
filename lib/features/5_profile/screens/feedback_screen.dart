@@ -38,8 +38,6 @@ class FeedbackScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 40),
-
-            // KESAN
             _buildSection(
               title: "Kesan",
               content:
@@ -48,8 +46,6 @@ class FeedbackScreen extends StatelessWidget {
             ),
 
             const SizedBox(height: 28),
-
-            // PESAN
             _buildSection(
               title: "Pesan",
               content:

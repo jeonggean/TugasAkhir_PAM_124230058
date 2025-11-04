@@ -3,6 +3,7 @@ import 'package:eventfinder/core/utils/snackbar_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../controllers/friend_controller.dart';
 import 'friend_favorites_screen.dart';
 
@@ -15,35 +16,53 @@ class FriendsScreen extends StatefulWidget {
 
 class _FriendsScreenState extends State<FriendsScreen>
     with SingleTickerProviderStateMixin {
-  late final FriendsController _controller;
-  late final TabController _tabController;
+  
+  late final TabController _tabController; 
   final TextEditingController _searchController = TextEditingController();
+  FriendsController? _friendsController;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _friendsController = Provider.of<FriendsController>(context, listen: false);
+  }
 
   @override
   void initState() {
     super.initState();
-    _controller = FriendsController();
-    _controller.addListener(() => setState(() {}));
-    _controller.loadInitialData();
     _tabController = TabController(length: 2, vsync: this);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _friendsController?.loadInitialData(); // Load data saat screen pertama kali dibuka
+      _friendsController?.addListener(_onStateChanged);
+    });
   }
+
+  void _onStateChanged() {
+    if (!mounted) return;
+    final controller = Provider.of<FriendsController>(context, listen: false);
+    if (controller.searchResult == null && _searchController.text.isNotEmpty) {
+      _searchController.clear();
+    }
+  }
+
 
   @override
   void dispose() {
-    _controller.dispose();
+    _friendsController?.removeListener(_onStateChanged);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  // 🔍 SEARCH
-  Future<void> _onSearchUser() async {
-    await _controller.onSearchUser(_searchController.text.trim());
+  Future<void> _onSearchUser(FriendsController controller) async {
+    await controller.onSearchUser(_searchController.text.trim());
   }
 
-  // 📨 KIRIM PERMINTAAN
-  Future<void> _sendFriendRequest() async {
-    final msg = await _controller.onSendFriendRequest();
+  Future<void> _sendFriendRequest(FriendsController controller) async {
+    final msg = await controller.onSendFriendRequest();
+    if (!mounted) return;
     SnackBarHelper.show(
       context,
       msg,
@@ -53,9 +72,10 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  // ✅ TERIMA PERMINTAAN
-  Future<void> _accept(int requesterId) async {
-    final msg = await _controller.onAcceptFriend(requesterId);
+  Future<void> _accept(FriendsController controller, int requesterId) async {
+    final msg = await controller.onAcceptFriend(requesterId);
+    if (!mounted) return;
+    await controller.refreshData(); // Refresh data setelah menerima permintaan
     SnackBarHelper.show(
       context,
       msg,
@@ -65,9 +85,10 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  // ❌ TOLAK PERMINTAAN
-  Future<void> _reject(int requesterId) async {
-    final msg = await _controller.onRejectFriend(requesterId);
+  Future<void> _reject(FriendsController controller, int requesterId) async {
+    final msg = await controller.onRejectFriend(requesterId);
+    if (!mounted) return;
+    await controller.refreshData(); // Refresh data setelah menolak permintaan
     SnackBarHelper.show(
       context,
       msg,
@@ -77,9 +98,10 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  // 🗑 HAPUS TEMAN
-  Future<void> _onRemoveFriend(int friendId, String username) async {
-    final msg = await _controller.onRemoveFriend(friendId, username);
+  Future<void> _onRemoveFriend(FriendsController controller, int friendId, String username) async {
+    final msg = await controller.onRemoveFriend(friendId, username);
+    if (!mounted) return;
+    await controller.refreshData(); // Refresh data setelah menghapus teman
     SnackBarHelper.show(
       context,
       msg,
@@ -89,7 +111,7 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  // ❤️ FAVORIT TEMAN
+  // Method ini tidak perlu controller, jadi biarkan saja
   void _openFriendFavorites(int id, String username) {
     Navigator.push(
       context,
@@ -102,71 +124,82 @@ class _FriendsScreenState extends State<FriendsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final me = _controller.currentUser;
-    final leaderboard = <Map<String, dynamic>>[];
+    // --- GANTI WIDGET TERLUAR DENGAN CONSUMER ---
+    return Consumer<FriendsController>(
+      builder: (context, controller, child) {
+        
+        // 'controller' sekarang didapat dari Provider
+        final me = controller.currentUser;
+        final leaderboard = <Map<String, dynamic>>[];
 
-    if (me != null) {
-      leaderboard.add({
-        'id': me['id'],
-        'username': me['username'],
-        'points': me['points'] ?? 0,
-        'isMe': true,
-      });
-    }
+        if (me != null) {
+          leaderboard.add({
+            'id': me['id'],
+            'username': me['username'],
+            'points': me['points'] ?? 0,
+            'isMe': true,
+          });
+        }
 
-    leaderboard.addAll(_controller.friendsList.map((f) => {
-          'id': f['id'],
-          'username': f['username'],
-          'points': f['points'] ?? 0,
-          'isMe': false,
-        }));
+        // Gunakan 'controller' dari Provider
+        leaderboard.addAll(controller.friendsList.map((f) => {
+              'id': f['id'],
+              'username': f['username'],
+              'points': f['points'] ?? 0,
+              'isMe': false,
+            }));
 
-    leaderboard.sort((a, b) => (b['points'] as int).compareTo(a['points'] as int));
-    final top3 = leaderboard.take(3).toList();
+        leaderboard.sort((a, b) => (b['points'] as int).compareTo(a['points'] as int));
+        final top3 = leaderboard.take(3).toList();
 
-    return Scaffold(
-      backgroundColor: AppColors.kBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: AppColors.kPrimaryColor,
-        elevation: 0,
-      ),
-      body: Column(
-        children: [
-          _buildLeaderboard(top3),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: _buildSearchBar(),
+        return Scaffold(
+          backgroundColor: AppColors.kBackgroundColor,
+          appBar: AppBar(
+            backgroundColor: AppColors.kPrimaryColor,
+            elevation: 0,
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _buildSearchResult(),
-          ),
-          TabBar(
-            controller: _tabController,
-            labelStyle: GoogleFonts.nunito(fontWeight: FontWeight.bold),
-            labelColor: AppColors.kPrimaryColor,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: AppColors.kPrimaryColor,
-            tabs: const [
-              Tab(text: "Teman Saya"),
-              Tab(text: "Permintaan Teman"),
+          body: Column(
+            children: [
+              _buildLeaderboard(top3), // UI Leaderboard tetap sama
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                // Oper 'controller' ke search bar
+                child: _buildSearchBar(controller), 
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                // Oper 'controller' ke search result
+                child: _buildSearchResult(controller), 
+              ),
+              TabBar(
+                controller: _tabController, // <-- Pakai _tabController dari State
+                labelStyle: GoogleFonts.nunito(fontWeight: FontWeight.bold),
+                labelColor: AppColors.kPrimaryColor,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: AppColors.kPrimaryColor,
+                tabs: const [
+                  Tab(text: "Teman Saya"),
+                  Tab(text: "Permintaan Teman"),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController, // <-- Pakai _tabController dari State
+                  children: [
+                    // Oper 'controller' ke tab
+                    _buildFriendsTab(controller), 
+                    _buildRequestsTab(controller),
+                  ],
+                ),
+              ),
             ],
           ),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildFriendsTab(),
-                _buildRequestsTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  // 🏆 Leaderboard
+  // 🏆 Leaderboard (Tidak perlu controller)
   Widget _buildLeaderboard(List<Map<String, dynamic>> top3) {
     return Container(
       width: double.infinity,
@@ -239,8 +272,8 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  // 🔍 Search bar
-  Widget _buildSearchBar() {
+  // 🔍 Search bar (Perlu controller)
+  Widget _buildSearchBar(FriendsController controller) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -264,31 +297,31 @@ class _FriendsScreenState extends State<FriendsScreen>
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
-        onSubmitted: (_) => _onSearchUser(),
+        onSubmitted: (_) => _onSearchUser(controller), // <-- Gunakan controller
       ),
     );
   }
 
-  // 🔎 Hasil pencarian
-  Widget _buildSearchResult() {
-    if (_controller.isSearching) {
+  // 🔎 Hasil pencarian (Perlu controller)
+  Widget _buildSearchResult(FriendsController controller) {
+    if (controller.isSearching) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_controller.searchMessage != null) {
+    if (controller.searchMessage != null) {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Center(child: Text(_controller.searchMessage!)),
+        child: Center(child: Text(controller.searchMessage!)),
       );
     }
-    if (_controller.searchResult != null) {
-      final s = _controller.searchResult!;
-      final rel = _controller.searchRelation;
+    if (controller.searchResult != null) {
+      final s = controller.searchResult!;
+      final rel = controller.searchRelation;
 
       Widget trailing;
       if (rel == 'none') {
         trailing = IconButton(
             icon: const Icon(Icons.person_add, color: Colors.green),
-            onPressed: _sendFriendRequest);
+            onPressed: () => _sendFriendRequest(controller)); // <-- Gunakan controller
       } else if (rel == 'pending_out') {
         trailing = Chip(
             label: const Text("Menunggu"),
@@ -296,7 +329,7 @@ class _FriendsScreenState extends State<FriendsScreen>
             labelStyle: const TextStyle(color: Colors.orange));
       } else if (rel == 'friends') {
         trailing = Chip(
-            label: const Text("Sudah Teman"),
+            label: const Text("Berteman"),
             backgroundColor: Colors.green.shade50,
             labelStyle: const TextStyle(color: Colors.green));
       } else {
@@ -317,21 +350,21 @@ class _FriendsScreenState extends State<FriendsScreen>
     return const SizedBox.shrink();
   }
 
-  // 👥 Tab: Teman Saya
-  Widget _buildFriendsTab() {
-    if (_controller.isLoadingFriends) {
+  // 👥 Tab: Teman Saya (Perlu controller)
+  Widget _buildFriendsTab(FriendsController controller) {
+    if (controller.isLoadingFriends) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_controller.friendsList.isEmpty) {
+    if (controller.friendsList.isEmpty) {
       return const Center(
         child: Text('Belum ada teman yang disetujui.\nTambahkan teman baru!'),
       );
     }
 
     return ListView.builder(
-      itemCount: _controller.friendsList.length,
+      itemCount: controller.friendsList.length,
       itemBuilder: (context, i) {
-        final f = _controller.friendsList[i];
+        final f = controller.friendsList[i];
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: Slidable(
@@ -341,7 +374,7 @@ class _FriendsScreenState extends State<FriendsScreen>
               extentRatio: 0.25,
               children: [
                 SlidableAction(
-                  onPressed: (_) => _onRemoveFriend(f['id'], f['username']),
+                  onPressed: (_) => _onRemoveFriend(controller, f['id'], f['username']), // <-- Gunakan controller
                   backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                   icon: Icons.delete_outline,
@@ -369,16 +402,16 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  // 📨 Tab: Permintaan Teman
-  Widget _buildRequestsTab() {
-    if (_controller.pendingRequests.isEmpty) {
+  // 📨 Tab: Permintaan Teman (Perlu controller)
+  Widget _buildRequestsTab(FriendsController controller) {
+    if (controller.pendingRequests.isEmpty) {
       return const Center(child: Text('Belum ada permintaan pertemanan.'));
     }
 
     return ListView.builder(
-      itemCount: _controller.pendingRequests.length,
+      itemCount: controller.pendingRequests.length,
       itemBuilder: (context, i) {
-        final req = _controller.pendingRequests[i];
+        final req = controller.pendingRequests[i];
         return Card(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
@@ -393,10 +426,10 @@ class _FriendsScreenState extends State<FriendsScreen>
               children: [
                 IconButton(
                     icon: const Icon(Icons.check_circle, color: Colors.green),
-                    onPressed: () => _accept(req['id'])),
+                    onPressed: () => _accept(controller, req['id'])),
                 IconButton(
                     icon: const Icon(Icons.cancel, color: Colors.red),
-                    onPressed: () => _reject(req['id'])),
+                    onPressed: () => _reject(controller, req['id'])), // <-- Gunakan controller
               ],
             ),
           ),

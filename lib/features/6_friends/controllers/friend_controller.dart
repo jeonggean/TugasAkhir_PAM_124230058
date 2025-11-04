@@ -35,15 +35,12 @@ class FriendsController extends ChangeNotifier {
   String? get searchRelation => _searchRelation;
 
   Future<void> loadInitialData() async {
+    if (_currentUserId != null) return; // Hindari loading ulang jika sudah ada data
+    
     final id = await _authService.getCurrentUserId();
     if (id == null) return;
     _currentUserId = id;
-    await loadCurrentUser();
-    await Future.wait([
-      _loadFriends(),
-      _loadPendingRequests(),
-      _loadOutgoingRequests(),
-    ]);
+    await refreshData();
   }
 
   Future<void> loadCurrentUser() async {
@@ -74,6 +71,16 @@ class FriendsController extends ChangeNotifier {
     if (_currentUserId == null) return;
     _outgoingRequests = await _friendService.getOutgoingRequests(_currentUserId!);
     notifyListeners();
+  }
+
+  // Method untuk me-refresh semua data
+  Future<void> refreshData() async {
+    await loadCurrentUser();
+    await Future.wait([
+      _loadFriends(),
+      _loadPendingRequests(),
+      _loadOutgoingRequests(),
+    ]);
   }
 
   Future<void> onSearchUser(String username) async {
