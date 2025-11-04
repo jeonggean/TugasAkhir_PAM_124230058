@@ -1,7 +1,8 @@
+import 'package:eventfinder/core/utils/app_colors.dart';
+import 'package:eventfinder/core/utils/snackbar_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:eventfinder/core/utils/app_colors.dart';
 import '../controllers/friend_controller.dart';
 import 'friend_favorites_screen.dart';
 
@@ -12,71 +13,89 @@ class FriendsScreen extends StatefulWidget {
   State<FriendsScreen> createState() => _FriendsScreenState();
 }
 
-class _FriendsScreenState extends State<FriendsScreen> {
+class _FriendsScreenState extends State<FriendsScreen>
+    with SingleTickerProviderStateMixin {
   late final FriendsController _controller;
+  late final TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _controller = FriendsController();
-    _controller.addListener(_onStateChanged);
+    _controller.addListener(() => setState(() {}));
     _controller.loadInitialData();
-  }
-
-  void _onStateChanged() {
-    if (_controller.searchResult == null) {
-      _searchController.clear();
-    }
-    setState(() {});
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    _controller.removeListener(_onStateChanged);
     _controller.dispose();
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
+  // 🔍 SEARCH
   Future<void> _onSearchUser() async {
     await _controller.onSearchUser(_searchController.text.trim());
   }
 
-  Future<void> _onAddFriend() async {
-    final message = await _controller.onAddFriend();
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  // 📨 KIRIM PERMINTAAN
+  Future<void> _sendFriendRequest() async {
+    final msg = await _controller.onSendFriendRequest();
+    SnackBarHelper.show(
+      context,
+      msg,
+      type: msg.contains("berhasil")
+          ? SnackBarType.success
+          : SnackBarType.error,
+    );
   }
 
-  Future<bool> _confirmDelete(String username) async {
-    return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Hapus Teman'),
-            content: Text('Anda yakin ingin menghapus $username dari daftar teman?'),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
-            ],
-          ),
-        ) ??
-        false;
+  // ✅ TERIMA PERMINTAAN
+  Future<void> _accept(int requesterId) async {
+    final msg = await _controller.onAcceptFriend(requesterId);
+    SnackBarHelper.show(
+      context,
+      msg,
+      type: msg.contains("berhasil")
+          ? SnackBarType.success
+          : SnackBarType.error,
+    );
   }
 
+  // ❌ TOLAK PERMINTAAN
+  Future<void> _reject(int requesterId) async {
+    final msg = await _controller.onRejectFriend(requesterId);
+    SnackBarHelper.show(
+      context,
+      msg,
+      type: msg.contains("berhasil")
+          ? SnackBarType.info
+          : SnackBarType.error,
+    );
+  }
+
+  // 🗑 HAPUS TEMAN
   Future<void> _onRemoveFriend(int friendId, String username) async {
-    final ok = await _confirmDelete(username);
-    if (!ok) return;
-    final message = await _controller.onRemoveFriend(friendId, username);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    final msg = await _controller.onRemoveFriend(friendId, username);
+    SnackBarHelper.show(
+      context,
+      msg,
+      type: msg.contains("berhasil")
+          ? SnackBarType.success
+          : SnackBarType.error,
+    );
   }
 
-  void _onViewFriendFavorites(int friendId, String username) {
+  // ❤️ FAVORIT TEMAN
+  void _openFriendFavorites(int id, String username) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FriendFavoritesScreen(friendId: friendId, friendUsername: username),
+        builder: (_) =>
+            FriendFavoritesScreen(friendId: id, friendUsername: username),
       ),
     );
   }
@@ -84,7 +103,8 @@ class _FriendsScreenState extends State<FriendsScreen> {
   @override
   Widget build(BuildContext context) {
     final me = _controller.currentUser;
-    final List<Map<String, dynamic>> leaderboard = [];
+    final leaderboard = <Map<String, dynamic>>[];
+
     if (me != null) {
       leaderboard.add({
         'id': me['id'],
@@ -93,6 +113,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
         'isMe': true,
       });
     }
+
     leaderboard.addAll(_controller.friendsList.map((f) => {
           'id': f['id'],
           'username': f['username'],
@@ -111,102 +132,33 @@ class _FriendsScreenState extends State<FriendsScreen> {
       ),
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppColors.kPrimaryColor,
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-            ),
-            padding: const EdgeInsets.only(top: 28, bottom: 24),
-            child: Column(
-              children: [
-                const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 48),
-                Text(
-                  'Leaderboard Teman',
-                  style: GoogleFonts.nunito(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 18),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: List.generate(3, (i) {
-                    if (i >= top3.length) return _buildEmptyRank(i + 1);
-                    final item = top3[i];
-                    final isMiddle = i == 1;
-                    return _buildRankCard(
-                      rank: i + 1,
-                      name: item['isMe'] ? '${item['username']} (You)' : item['username'],
-                      points: item['points'],
-                      size: isMiddle ? 96 : 76,
-                      highlight: item['isMe'] == true,
-                    );
-                  }),
-                ),
-              ],
-            ),
+          _buildLeaderboard(top3),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: _buildSearchBar(),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: _buildSearchResult(),
+          ),
+          TabBar(
+            controller: _tabController,
+            labelStyle: GoogleFonts.nunito(fontWeight: FontWeight.bold),
+            labelColor: AppColors.kPrimaryColor,
+            unselectedLabelColor: Colors.grey,
+            indicatorColor: AppColors.kPrimaryColor,
+            tabs: const [
+              Tab(text: "Teman Saya"),
+              Tab(text: "Permintaan Teman"),
+            ],
           ),
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'Tambah Teman Baru',
-                    style: GoogleFonts.nunito(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      style: GoogleFonts.nunito(fontSize: 16, color: Colors.grey.shade800),
-                      cursorColor: Colors.black,
-                      decoration: InputDecoration(
-                        hintText: 'Cari teman...',
-                        hintStyle: GoogleFonts.nunito(color: Colors.grey.shade500, fontSize: 15),
-                        prefixIcon: Icon(Icons.search, color: AppColors.kPrimaryColor),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      onSubmitted: (_) => _onSearchUser(),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSearchResult(),
-                  const Divider(height: 32),
-                  Text(
-                    'Daftar Teman Saya',
-                    style: GoogleFonts.nunito(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey.shade800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(child: _buildFriendsList(AppColors.kPrimaryColor)),
-                ],
-              ),
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildFriendsTab(),
+                _buildRequestsTab(),
+              ],
             ),
           ),
         ],
@@ -214,154 +166,238 @@ class _FriendsScreenState extends State<FriendsScreen> {
     );
   }
 
-  Widget _buildEmptyRank(int rank) {
-    return Column(
-      children: [
-        const CircleAvatar(radius: 36, backgroundColor: Colors.white24),
-        const SizedBox(height: 8),
-        Text('#$rank', style: const TextStyle(color: Colors.white70, fontSize: 12)),
-      ],
+  // 🏆 Leaderboard
+  Widget _buildLeaderboard(List<Map<String, dynamic>> top3) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.kPrimaryColor,
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        children: [
+          const Icon(Icons.emoji_events_rounded, color: Colors.amber, size: 48),
+          Text(
+            'Leaderboard Teman',
+            style: GoogleFonts.nunito(
+                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: List.generate(3, (i) {
+              if (i >= top3.length) return _buildEmptyRank(i + 1);
+              final item = top3[i];
+              return _buildRankCard(
+                rank: i + 1,
+                name: item['isMe']
+                    ? '${item['username']} (You)'
+                    : item['username'],
+                points: item['points'],
+              );
+            }),
+          ),
+        ],
+      ),
     );
   }
+
+  Widget _buildEmptyRank(int rank) => Column(
+        children: [
+          const CircleAvatar(radius: 36, backgroundColor: Colors.white24),
+          const SizedBox(height: 8),
+          Text('#$rank',
+              style: const TextStyle(color: Colors.white70, fontSize: 12)),
+        ],
+      );
 
   Widget _buildRankCard({
     required int rank,
     required String name,
     required int points,
-    required double size,
-    bool highlight = false,
   }) {
     final medal = {1: '🥇', 2: '🥈', 3: '🥉'}[rank] ?? '';
-    final Color glow = rank == 1 ? Colors.amberAccent : Colors.white.withOpacity(0.4);
-    final double blur = rank == 1 ? 22 : 8;
     return Column(
       children: [
-        Stack(
-          clipBehavior: Clip.none,
-          alignment: Alignment.center,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(color: glow, blurRadius: blur, spreadRadius: rank == 1 ? 6 : 2),
-                ],
-              ),
-              child: CircleAvatar(
-                radius: size / 2,
-                backgroundColor: Colors.white,
-                child: FittedBox(child: Text(medal, style: const TextStyle(fontSize: 36))),
-              ),
-            ),
-            Positioned(
-              bottom: -6,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text('#$rank', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.kPrimaryColor)),
-              ),
-            ),
-            if (highlight)
-              Positioned(
-                top: -6,
-                right: -6,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: Icon(Icons.person, size: 14, color: AppColors.kPrimaryColor),
-                ),
-              ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        SizedBox(
-          width: 110,
-          child: Text(
-            name,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.nunito(color: Colors.white, fontWeight: FontWeight.w600),
+        CircleAvatar(
+          radius: 36,
+          backgroundColor: Colors.white,
+          child: FittedBox(
+            child: Text(medal, style: const TextStyle(fontSize: 36)),
           ),
         ),
-        Text('${points} pts', style: GoogleFonts.nunito(color: Colors.white70, fontSize: 12)),
+        const SizedBox(height: 8),
+        Text(name,
+            style: GoogleFonts.nunito(
+                color: Colors.white, fontWeight: FontWeight.w600)),
+        Text('$points pts', style: GoogleFonts.nunito(color: Colors.white70)),
       ],
     );
   }
 
+  // 🔍 Search bar
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4)),
+        ],
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: GoogleFonts.nunito(fontSize: 16, color: Colors.grey.shade800),
+        cursorColor: Colors.black,
+        decoration: InputDecoration(
+          hintText: 'Cari teman...',
+          hintStyle:
+              GoogleFonts.nunito(color: Colors.grey.shade500, fontSize: 15),
+          prefixIcon: Icon(Icons.search, color: AppColors.kPrimaryColor),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+        onSubmitted: (_) => _onSearchUser(),
+      ),
+    );
+  }
+
+  // 🔎 Hasil pencarian
   Widget _buildSearchResult() {
     if (_controller.isSearching) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_controller.searchMessage != null) {
-      return Center(child: Text(_controller.searchMessage!));
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Center(child: Text(_controller.searchMessage!)),
+      );
     }
     if (_controller.searchResult != null) {
       final s = _controller.searchResult!;
+      final rel = _controller.searchRelation;
+
+      Widget trailing;
+      if (rel == 'none') {
+        trailing = IconButton(
+            icon: const Icon(Icons.person_add, color: Colors.green),
+            onPressed: _sendFriendRequest);
+      } else if (rel == 'pending_out') {
+        trailing = Chip(
+            label: const Text("Menunggu"),
+            backgroundColor: Colors.orange.shade50,
+            labelStyle: const TextStyle(color: Colors.orange));
+      } else if (rel == 'friends') {
+        trailing = Chip(
+            label: const Text("Sudah Teman"),
+            backgroundColor: Colors.green.shade50,
+            labelStyle: const TextStyle(color: Colors.green));
+      } else {
+        trailing = const SizedBox.shrink();
+      }
+
       return Card(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(
           leading: const CircleAvatar(child: Icon(Icons.person)),
-          title: Text(s['username'], style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
-          trailing: IconButton(
-            icon: const Icon(Icons.person_add, color: Colors.green),
-            onPressed: _onAddFriend,
-          ),
+          title: Text(s['username'],
+              style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
+          subtitle: Text("Points: ${s['points']}", style: GoogleFonts.nunito()),
+          trailing: trailing,
         ),
       );
     }
     return const SizedBox.shrink();
   }
 
-  Widget _buildFriendsList(Color primary) {
+  // 👥 Tab: Teman Saya
+  Widget _buildFriendsTab() {
     if (_controller.isLoadingFriends) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_controller.friendsList.isEmpty) {
       return const Center(
-        child: Text('Anda belum memiliki teman.\nCari dan tambahkan teman baru di atas!', textAlign: TextAlign.center),
+        child: Text('Belum ada teman yang disetujui.\nTambahkan teman baru!'),
       );
     }
 
     return ListView.builder(
       itemCount: _controller.friendsList.length,
-      itemBuilder: (context, index) {
-        final friend = _controller.friendsList[index];
+      itemBuilder: (context, i) {
+        final f = _controller.friendsList[i];
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4.0),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
           child: Slidable(
-            key: ValueKey(friend['id']),
+            key: ValueKey(f['id']),
             endActionPane: ActionPane(
               motion: const DrawerMotion(),
               extentRatio: 0.25,
               children: [
                 SlidableAction(
-                  onPressed: (context) async {
-                    final ok = await _confirmDelete(friend['username']);
-                    if (ok) {
-                      await _onRemoveFriend(friend['id'], friend['username']);
-                    }
-                  },
-                  backgroundColor: Colors.red.shade600,
+                  onPressed: (_) => _onRemoveFriend(f['id'], f['username']),
+                  backgroundColor: Colors.red,
                   foregroundColor: Colors.white,
                   icon: Icons.delete_outline,
                   label: 'Hapus',
-                  borderRadius: BorderRadius.circular(12),
                 ),
               ],
             ),
             child: Card(
-              elevation: 1.5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape:
+                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               child: ListTile(
-                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
-                title: Text(friend['username'], style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
-                subtitle: Text('Points: ${friend['points']}', style: GoogleFonts.nunito()),
-                onTap: () => _onViewFriendFavorites(friend['id'], friend['username']),
+                leading:
+                    const CircleAvatar(child: Icon(Icons.person_outline)),
+                title: Text(f['username'],
+                    style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
+                subtitle: Text('Points: ${f['points']}',
+                    style: GoogleFonts.nunito(fontSize: 14)),
+                onTap: () =>
+                    _openFriendFavorites(f['id'], f['username']),
               ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  // 📨 Tab: Permintaan Teman
+  Widget _buildRequestsTab() {
+    if (_controller.pendingRequests.isEmpty) {
+      return const Center(child: Text('Belum ada permintaan pertemanan.'));
+    }
+
+    return ListView.builder(
+      itemCount: _controller.pendingRequests.length,
+      itemBuilder: (context, i) {
+        final req = _controller.pendingRequests[i];
+        return Card(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+          child: ListTile(
+            leading: const CircleAvatar(child: Icon(Icons.person_add_alt_1)),
+            title: Text(req['username'],
+                style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
+            subtitle:
+                Text("Points: ${req['points']}", style: GoogleFonts.nunito()),
+            trailing: Wrap(
+              spacing: 8,
+              children: [
+                IconButton(
+                    icon: const Icon(Icons.check_circle, color: Colors.green),
+                    onPressed: () => _accept(req['id'])),
+                IconButton(
+                    icon: const Icon(Icons.cancel, color: Colors.red),
+                    onPressed: () => _reject(req['id'])),
+              ],
             ),
           ),
         );

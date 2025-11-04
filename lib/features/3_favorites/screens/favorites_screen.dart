@@ -2,6 +2,7 @@ import 'package:eventfinder/core/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart'; // IMPORT
 import '../../1_event/models/event_model.dart';
 import '../../1_event/screens/event_detail_screen.dart';
 import '../controllers/favorites_controller.dart';
@@ -15,18 +16,15 @@ class FavoritesScreen extends StatefulWidget {
 }
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
-  late final FavoritesController _controller;
+  // HAPUS: 'late final FavoritesController _controller'
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = "";
 
   @override
   void initState() {
     super.initState();
-    _controller = FavoritesController();
-    _controller.addListener(() {
-      if (mounted) setState(() {});
-    });
-    _controller.loadFavorites();
+    // HAPUS: Semua yang berhubungan dengan _controller
+    // Data sudah di-load oleh Provider di MainNavigationScreen
 
     _searchController.addListener(() {
       setState(() {
@@ -37,11 +35,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
     _searchController.dispose();
+    // HAPUS: _controller.dispose();
     super.dispose();
   }
 
+  // ... (Method _formatCurrency dan _confirmDelete tetap sama)
   String _formatCurrency(double? price, String currency) {
     if (price == null) return 'Free';
     String symbol = '';
@@ -85,45 +84,53 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         false;
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          'Acara Favorit',
-          style: GoogleFonts.nunito(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        backgroundColor: AppColors.kPrimaryColor,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
-      floatingActionButton: FloatingActionButton(
-      backgroundColor: AppColors.kPrimaryColor,
-      onPressed: () async {
-        // misal kamu mau navigasi sambil kirim data popular event
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PopularEventsScreen(
-              popularEvents: _controller.favorites, // contoh data dummy
-              isLoading: false, // atau true kalau mau nunjukin loading dulu
+    // Ganti widget terluar dengan Consumer
+    // Ia akan 'mendengar' FavoritesController
+    return Consumer<FavoritesController>(
+      builder: (context, controller, child) {
+        // 'controller' adalah instance yang didapat dari Provider
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(
+              'Acara Favorit',
+              style: GoogleFonts.nunito(fontWeight: FontWeight.bold, color: Colors.white),
             ),
+            backgroundColor: AppColors.kPrimaryColor,
+            foregroundColor: Colors.white,
+            elevation: 0,
+          ),
+          floatingActionButton: FloatingActionButton(
+            backgroundColor: AppColors.kPrimaryColor,
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => PopularEventsScreen(
+                    popularEvents: controller.favorites, // Gunakan controller
+                    isLoading: false,
+                  ),
+                ),
+              );
+            },
+            child: const Icon(Icons.add, color: Colors.white),
+          ),
+          body: Column(
+            children: [
+              _buildSearchBar(),
+              // Oper 'controller' ke method _buildBody
+              Expanded(child: _buildBody(controller)),
+            ],
           ),
         );
-        _controller.loadFavorites();
       },
-      child: const Icon(Icons.add, color: Colors.white),
-    ),
-      body: Column(
-        children: [
-          _buildSearchBar(),
-          Expanded(child: _buildBody()),
-        ],
-      ),
     );
   }
 
   Widget _buildSearchBar() {
+    // ... (Tidak ada perubahan di method ini)
     return Container(
       color: AppColors.kPrimaryColor,
       padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 16.0),
@@ -153,17 +160,18 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  Widget _buildBody() {
-    if (_controller.isLoading) {
+  // UBAH: Terima 'FavoritesController controller' sbg parameter
+  Widget _buildBody(FavoritesController controller) {
+    if (controller.isLoading) {
       return Center(
           child: CircularProgressIndicator(color: AppColors.kPrimaryColor));
     }
 
     final List<EventModel> filteredFavorites;
     if (_searchQuery.isEmpty) {
-      filteredFavorites = _controller.favorites;
+      filteredFavorites = controller.favorites;
     } else {
-      filteredFavorites = _controller.favorites.where((event) {
+      filteredFavorites = controller.favorites.where((event) {
         return event.name.toLowerCase().contains(_searchQuery.toLowerCase());
       }).toList();
     }
@@ -187,12 +195,14 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       separatorBuilder: (context, index) => const SizedBox(height: 16),
       itemBuilder: (context, index) {
         final event = filteredFavorites[index];
-        return _buildSlidableCard(event);
+        // Oper controller ke card
+        return _buildSlidableCard(event, controller);
       },
     );
   }
 
-  Widget _buildSlidableCard(EventModel event) {
+  // UBAH: Terima 'FavoritesController controller' sbg parameter
+  Widget _buildSlidableCard(EventModel event, FavoritesController controller) {
     return Slidable(
       key: ValueKey(event.id ?? event.name),
       endActionPane: ActionPane(
@@ -203,8 +213,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             onPressed: (context) async {
               final ok = await _confirmDelete(event.name);
               if (ok) {
-                await _controller.removeFromFavorites(event.id ?? event.name);
-                _controller.loadFavorites();
+                // Gunakan controller dari parameter
+                await controller.removeFromFavorites(event.id ?? event.name);
+                // Tidak perlu panggil loadFavorites() lagi,
+                // controller akan panggil notifyListeners()
               }
             },
             backgroundColor: Colors.red.shade600,
@@ -220,9 +232,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             context,
             MaterialPageRoute(builder: (context) => EventDetailScreen(event: event)),
           );
-          _controller.loadFavorites();
         },
         child: Container(
+          // ... (UI Card Anda tetap sama)
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),

@@ -9,18 +9,25 @@ class EventController extends ChangeNotifier {
 
   List<EventModel> _regionalEvents = [];
   List<EventModel> _popularEventsGlobal = [];
+  
   bool _isLoadingRegional = true;
   bool _isLoadingPopular = true;
   String _errorMessage = '';
+  
   bool _disposed = false;
 
   List<EventModel> get regionalEvents => _regionalEvents;
   List<EventModel> get popularEventsGlobal => _popularEventsGlobal;
+  
   bool get isLoadingRegional => _isLoadingRegional;
   bool get isLoadingPopular => _isLoadingPopular;
   String get errorMessage => _errorMessage;
 
   EventController() {
+    fetchAllEvents();
+  }
+
+  void fetchAllEvents() {
     loadRegionalEvents();
     loadPopularGlobalEvents();
   }
@@ -56,7 +63,7 @@ class EventController extends ChangeNotifier {
     try {
       _regionalEvents = await _eventService.fetchEvents(
         latLong: latLong,
-        radius: "2500",
+        radius: "2700",
         keyword: keyword,
       );
       if (_disposed) return;

@@ -43,8 +43,8 @@ class FeedbackScreen extends StatelessWidget {
             _buildSection(
               title: "Kesan",
               content:
-                  "Mata kuliah ini sangat membuka wawasan, terutama dalam memahami bagaimana merancang dan membangun perangkat lunak yang skalabel dan efisien. "
-                  "Proses belajar dari studi kasus nyata sangat membantu saya menghubungkan teori dengan praktik.",
+                  "Mata kuliah ini sangat  mengajarkan kepada saya bahwa betapa pentingnya untuk selalu mengingat bahwa Allah SWT bersama dengan mahsiswa semester 5. "
+                  "Proses pembelajarannya sangat challenging, walaupun saya gen Z saya gasuka yang challenging.",
             ),
 
             const SizedBox(height: 28),
@@ -53,7 +53,7 @@ class FeedbackScreen extends StatelessWidget {
             _buildSection(
               title: "Pesan",
               content:
-                  "Untuk ke depannya, mungkin akan lebih baik jika ada sesi workshop atau live coding tambahan untuk topik-topik yang kompleks seperti arsitektur mikroservis atau CI/CD. "
+                  "Untuk ke depannya, semoga selamat selimit "
                   "Terima kasih atas bimbingan dan ilmunya selama satu semester ini.",
             ),
 

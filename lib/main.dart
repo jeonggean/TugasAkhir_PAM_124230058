@@ -20,6 +20,7 @@ void main() async {
   await initializeDateFormatting('id_ID', null);
   tz.initializeTimeZones();
 
+
   runApp(const MyApp());
 }
 

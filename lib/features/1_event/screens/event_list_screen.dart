@@ -131,163 +131,161 @@ class _EventListScreenState extends State<EventListScreen> {
     );
   }
 
-  Widget _buildPurpleHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.kPrimaryColor,
-            AppColors.kPrimaryColor.withOpacity(0.8),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24.0, 16.0, 24.0, 24.0),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.event_note_outlined,
-                            color: Colors.white,
-                            size: 28,
-                          ),
-                          const SizedBox(width: 12),
-                          Text(
-                            'EvenFinder',
-                            style: GoogleFonts.nunito(
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      FutureBuilder<String?>(
-                        future: _usernameFuture,
-                        builder: (context, snapshot) {
-                          final username = snapshot.data ?? 'User';
-                          return Text(
-                            'Hello $username',
-                            style: GoogleFonts.nunito(
-                              fontSize: 16,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Temukan Acara Favoritmu ',
-                        style: GoogleFonts.nunito(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                ],
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Icon(
-                    Icons.location_on,
-                    color: Colors.white.withOpacity(0.9),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    "Lokasi Anda: ",
-                    style: GoogleFonts.nunito(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  _isLocationLoading
-                      ? Text(
-                          'Mencari...',
-                          style: GoogleFonts.nunito(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Flexible(
-                          child: Text(
-                            _currentLocationName ?? 'Tidak Ditemukan',
-                            style: GoogleFonts.nunito(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16.0),
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  style: TextStyle(color: AppColors.kTextColor),
-                  decoration: InputDecoration(
-                    hintText: 'Cari acara...',
-                    hintStyle: TextStyle(color: AppColors.kSecondaryTextColor),
-                    prefixIcon: Icon(
-                      Icons.search,
-                      color: AppColors.kPrimaryColor,
-                    ),
-                    suffixIcon: _searchController.text.isNotEmpty
-                        ? IconButton(
-                            icon: Icon(
-                              Icons.clear,
-                              color: AppColors.kSecondaryTextColor,
-                            ),
-                            onPressed: () {
-                              _searchController.clear();
-                              _controller.loadRegionalEvents();
-                              _controller.loadPopularGlobalEvents();
-                            },
-                          )
-                        : null,
-                    contentPadding: const EdgeInsets.symmetric(
-                      vertical: 16.0,
-                      horizontal: 16.0,
-                    ),
-                    border: InputBorder.none,
-                  ),
-                  onChanged: (value) => setState(() {}),
-                  onSubmitted: (keyword) {
-                    if (keyword.isNotEmpty) {
-                      _controller.searchEvents(keyword);
-                    }
-                  },
-                ),
+    Widget _buildPurpleHeader() {
+    return Stack(
+      children: [
+        Container(
+          height: 240,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                AppColors.kPrimaryColor,
+                AppColors.kPrimaryColor.withOpacity(0.85),
+                AppColors.kPrimaryColor.withOpacity(0.7),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius:
+                const BorderRadius.vertical(bottom: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.kPrimaryColor.withOpacity(0.25),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
         ),
-      ),
+        SafeArea(
+          bottom: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.event_note_outlined,
+                        color: Colors.white, size: 30),
+                    const SizedBox(width: 10),
+                    Text(
+                      "EvenFinder",
+                      style: GoogleFonts.nunito(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const Spacer(),
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundColor: Colors.white.withOpacity(0.2),
+                      child: Icon(Icons.person_outline,
+                          color: Colors.white, size: 22),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                FutureBuilder<String?>(
+                  future: _usernameFuture,
+                  builder: (context, snapshot) {
+                    final username = snapshot.data ?? 'User';
+                    return Text(
+                      "Hai, $username!! ",
+                      style: GoogleFonts.nunito(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  "Temukan acara favoritmu sekarang!",
+                  style: GoogleFonts.nunito(
+                    color: Colors.white70,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Icon(Icons.location_on,
+                        color: Colors.white.withOpacity(0.9), size: 20),
+                    const SizedBox(width: 6),
+                    _isLocationLoading
+                        ? Text(
+                            "Mendeteksi lokasi...",
+                            style: GoogleFonts.nunito(
+                                color: Colors.white, fontWeight: FontWeight.bold),
+                          )
+                        : Flexible(
+                            child: Text(
+                              _currentLocationName ?? "Lokasi Tidak Diketahui",
+                              style: GoogleFonts.nunito(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(18),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: GoogleFonts.nunito(color: AppColors.kTextColor),
+                    decoration: InputDecoration(
+                      hintText: 'Cari acara, artis, atau lokasi...',
+                      hintStyle:
+                          GoogleFonts.nunito(color: AppColors.kSecondaryTextColor),
+                      prefixIcon:
+                          Icon(Icons.search, color: AppColors.kPrimaryColor),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? IconButton(
+                              icon: Icon(Icons.clear,
+                                  color: AppColors.kSecondaryTextColor),
+                              onPressed: () {
+                                _searchController.clear();
+                                _controller.loadRegionalEvents();
+                                _controller.loadPopularGlobalEvents();
+                              },
+                            )
+                          : null,
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: (value) => setState(() {}),
+                    onSubmitted: (keyword) {
+                      if (keyword.isNotEmpty) {
+                        _controller.searchEvents(keyword);
+                      }
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
+
 
   Widget _buildPopularEventsSection() {
     return Column(

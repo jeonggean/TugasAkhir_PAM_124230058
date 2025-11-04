@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../2_auth/services/auth_service.dart';
 import '../../2_auth/screens/login_screen.dart';
 import '../models/badge_model.dart';
+import '../../../features/6_friends/services/friend_service.dart ';
 import 'about_screen.dart';
 import 'developer_info_screen.dart';
 import 'feedback_screen.dart';
@@ -20,6 +21,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen>
     with SingleTickerProviderStateMixin {
   final AuthService _authService = AuthService();
+  final FriendService _friendService = FriendService();
+
   late Future<Map<String, dynamic>> _userDataFuture;
   late AnimationController _badgeController;
 
@@ -35,9 +38,18 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<Map<String, dynamic>> _loadUserData() async {
     final username = await _authService.getCurrentUsername();
     final points = await _authService.getCurrentUserPoints();
+    final userId = await _authService.getCurrentUserId();
+
+    int friendsCount = 0;
+    if (userId != null) {
+      final friends = await _friendService.getFriends(userId);
+      friendsCount = friends.length;
+    }
+
     return {
       'username': username,
       'points': points,
+      'friendsCount': friendsCount,
     };
   }
 
@@ -108,11 +120,12 @@ class _ProfileScreenState extends State<ProfileScreen>
 
           final username = snapshot.data?['username'] as String? ?? 'Pengguna';
           final points = snapshot.data?['points'] as int? ?? 0;
+          final friendsCount = snapshot.data?['friendsCount'] as int? ?? 0;
           final badge = BadgeService.getBadgeForPoints(points);
 
           return Column(
             children: [
-              _buildProfileHeader(username, points, badge),
+              _buildProfileHeader(username, points, friendsCount, badge),
               Expanded(
                 child: SingleChildScrollView(
                   child: _buildProfileMenu(),
@@ -125,7 +138,8 @@ class _ProfileScreenState extends State<ProfileScreen>
     );
   }
 
-  Widget _buildProfileHeader(String username, int points, BadgeInfo badge) {
+  Widget _buildProfileHeader(
+      String username, int points, int friendsCount, BadgeInfo badge) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -163,13 +177,31 @@ class _ProfileScreenState extends State<ProfileScreen>
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                "$points Poin",
-                style: GoogleFonts.nunito(
-                  color: Colors.white70,
-                  fontSize: 15,
-                ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.star, size: 16, color: Colors.amber.shade300),
+                  const SizedBox(width: 4),
+                  Text(
+                    "$points Poin",
+                    style: GoogleFonts.nunito(
+                      color: Colors.white70,
+                      fontSize: 15,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Icon(Icons.people_alt_rounded,
+                      size: 16, color: Colors.lightBlueAccent.shade100),
+                  const SizedBox(width: 4),
+                  Text(
+                    "$friendsCount Teman",
+                    style: GoogleFonts.nunito(
+                      color: Colors.white70,
+                      fontSize: 15,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               AnimatedBuilder(
@@ -301,8 +333,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                 style: GoogleFonts.nunito(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color:
-                      isLogout ? Colors.redAccent : AppColors.kSecondaryTextColor,
+                  color: isLogout
+                      ? Colors.redAccent
+                      : AppColors.kSecondaryTextColor,
                 ),
               ),
             ),

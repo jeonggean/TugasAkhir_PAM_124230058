@@ -1,4 +1,5 @@
 import 'package:eventfinder/core/utils/app_colors.dart';
+import 'package:eventfinder/core/utils/snackbar_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../controllers/auth_controller.dart';
@@ -80,16 +81,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final bool success = await _controller.register(username, password);
 
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Registrasi berhasil! Silakan login.'),
-          backgroundColor: Colors.green,
-        ),
+      SnackBarHelper.show(
+        context,
+        "Registrasi berhasil! Silakan login.",
+        type: SnackBarType.success,
       );
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => LoginScreen()),
         (Route<dynamic> route) => false,
+      );
+    } else if (!success && mounted && _controller.errorMessage.isNotEmpty) {
+      SnackBarHelper.show(
+        context,
+        _controller.errorMessage,
+        type: SnackBarType.error,
       );
     }
   }
@@ -198,7 +204,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
-                        child: Text('Daftar'),
+                        child: Text(
+                          'Daftar',
+                          style: GoogleFonts.nunito(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                 const SizedBox(height: 40),
                 Row(
@@ -249,7 +261,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         suffixIcon: isPassword
             ? IconButton(
                 icon: Icon(
-                  obscureState ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                  obscureState
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: AppColors.kSecondaryTextColor,
                 ),
                 onPressed: onToggleObscure,

@@ -19,13 +19,15 @@ class DatabaseService {
 
     return await openDatabase(
       path,
-      version: 3, // NAIKKAN VERSI DATABASE
+      version: 4, // 🔼 NAIKKAN VERSI DATABASE
       onCreate: _createDB,
       onUpgrade: _upgradeDB,
     );
   }
 
+  // 🔹 Dijalankan saat pertama kali install
   Future _createDB(Database db, int version) async {
+    // Users
     await db.execute('''
       CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -35,6 +37,7 @@ class DatabaseService {
       )
     ''');
 
+    // Favorites
     await db.execute('''
       CREATE TABLE favorites (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -42,10 +45,11 @@ class DatabaseService {
         eventId TEXT NOT NULL,
         eventJson TEXT NOT NULL,
         FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
-        UNIQUE(userId, eventId) 
+        UNIQUE(userId, eventId)
       )
     ''');
 
+    // Redeemed codes
     await db.execute('''
       CREATE TABLE redeemed_codes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -57,27 +61,31 @@ class DatabaseService {
       )
     ''');
 
-    // TAMBAHKAN TABEL BARU INI
+    // 🔹 Tabel friendships baru: dengan status permintaan
     await db.execute('''
       CREATE TABLE friendships (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER NOT NULL,
-        friendId INTEGER NOT NULL,
-        FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
-        FOREIGN KEY (friendId) REFERENCES users (id) ON DELETE CASCADE,
-        UNIQUE(userId, friendId)
+        requesterId INTEGER NOT NULL,
+        receiverId INTEGER NOT NULL,
+        status TEXT CHECK(status IN ('pending','accepted','rejected')) DEFAULT 'pending',
+        createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (requesterId) REFERENCES users (id) ON DELETE CASCADE,
+        FOREIGN KEY (receiverId) REFERENCES users (id) ON DELETE CASCADE,
+        UNIQUE(requesterId, receiverId)
       )
     ''');
+
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_friendships_req_rec ON friendships(requesterId, receiverId)');
+    await db.execute('CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status)');
   }
 
+  // 🔹 Dijalankan saat versi database dinaikkan
   Future _upgradeDB(Database db, int oldVersion, int newVersion) async {
+    // v2: tambah points dan redeemed_codes
     if (oldVersion < 2) {
       try {
         await db.execute("ALTER TABLE users ADD COLUMN points INTEGER NOT NULL DEFAULT 0");
-      } catch (e) {
-        print("Kolom 'points' sudah ada, mengabaikan error: $e");
-      }
-      
+      } catch (_) {}
       try {
         await db.execute('''
           CREATE TABLE redeemed_codes (
@@ -89,12 +97,10 @@ class DatabaseService {
             UNIQUE(userId, code)
           )
         ''');
-      } catch (e) {
-         print("Tabel 'redeemed_codes' sudah ada, mengabaikan error: $e");
-      }
+      } catch (_) {}
     }
 
-    // TAMBAHKAN LOGIKA UPGRADE UNTUK VERSI 3
+    // v3: versi lama masih pakai userId/friendId
     if (oldVersion < 3) {
       try {
         await db.execute('''
@@ -107,9 +113,40 @@ class DatabaseService {
             UNIQUE(userId, friendId)
           )
         ''');
+      } catch (_) {}
+    }
+    
+    if (oldVersion < 4) {
+      // 1️⃣ Buat tabel baru
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS friendships_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          requesterId INTEGER NOT NULL,
+          receiverId INTEGER NOT NULL,
+          status TEXT CHECK(status IN ('pending','accepted','rejected')) DEFAULT 'accepted',
+          createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (requesterId) REFERENCES users (id) ON DELETE CASCADE,
+          FOREIGN KEY (receiverId) REFERENCES users (id) ON DELETE CASCADE,
+          UNIQUE(requesterId, receiverId)
+        )
+      ''');
+
+      try {
+        await db.execute('''
+          INSERT OR IGNORE INTO friendships_new (requesterId, receiverId, status)
+          SELECT userId, friendId, 'accepted' FROM friendships
+        ''');
       } catch (e) {
-         print("Tabel 'friendships' sudah ada, mengabaikan error: $e");
+        print("Gagal migrasi data lama: $e");
       }
+
+      // 3️⃣ Ganti tabel lama
+      await db.execute('DROP TABLE IF EXISTS friendships');
+      await db.execute('ALTER TABLE friendships_new RENAME TO friendships');
+
+      // 4️⃣ Tambahkan index baru
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_friendships_req_rec ON friendships(requesterId, receiverId)');
+      await db.execute('CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status)');
     }
   }
 }

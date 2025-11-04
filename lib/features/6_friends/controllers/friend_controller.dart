@@ -16,6 +16,12 @@ class FriendsController extends ChangeNotifier {
   List<Map<String, dynamic>> _friendsList = [];
   List<Map<String, dynamic>> get friendsList => _friendsList;
 
+  List<Map<String, dynamic>> _pendingRequests = [];
+  List<Map<String, dynamic>> get pendingRequests => _pendingRequests;
+
+  List<Map<String, dynamic>> _outgoingRequests = [];
+  List<Map<String, dynamic>> get outgoingRequests => _outgoingRequests;
+
   bool _isSearching = false;
   bool get isSearching => _isSearching;
 
@@ -25,22 +31,25 @@ class FriendsController extends ChangeNotifier {
   String? _searchMessage;
   String? get searchMessage => _searchMessage;
 
+  String? _searchRelation; // 'none' | 'self' | 'friends' | 'pending_in' | 'pending_out'
+  String? get searchRelation => _searchRelation;
+
   Future<void> loadInitialData() async {
     final id = await _authService.getCurrentUserId();
     if (id == null) return;
     _currentUserId = id;
     await loadCurrentUser();
-    await _loadFriends();
+    await Future.wait([
+      _loadFriends(),
+      _loadPendingRequests(),
+      _loadOutgoingRequests(),
+    ]);
   }
 
   Future<void> loadCurrentUser() async {
     if (_currentUserId == null) return;
-    try {
-      _currentUser = await _friendService.getUserById(_currentUserId!);
-      notifyListeners();
-    } catch (e) {
-      print('Gagal memuat data pengguna: $e');
-    }
+    _currentUser = await _friendService.getUserById(_currentUserId!);
+    notifyListeners();
   }
 
   Future<void> _loadFriends() async {
@@ -49,12 +58,22 @@ class FriendsController extends ChangeNotifier {
     notifyListeners();
     try {
       _friendsList = await _friendService.getFriends(_currentUserId!);
-    } catch (e) {
-      print('Gagal memuat teman: $e');
     } finally {
       _isLoadingFriends = false;
       notifyListeners();
     }
+  }
+
+  Future<void> _loadPendingRequests() async {
+    if (_currentUserId == null) return;
+    _pendingRequests = await _friendService.getPendingRequests(_currentUserId!);
+    notifyListeners();
+  }
+
+  Future<void> _loadOutgoingRequests() async {
+    if (_currentUserId == null) return;
+    _outgoingRequests = await _friendService.getOutgoingRequests(_currentUserId!);
+    notifyListeners();
   }
 
   Future<void> onSearchUser(String username) async {
@@ -62,17 +81,21 @@ class FriendsController extends ChangeNotifier {
     _isSearching = true;
     _searchResult = null;
     _searchMessage = null;
+    _searchRelation = null;
     notifyListeners();
+
     try {
       final user = await _friendService.findUserByUsername(username);
-      if (user != null) {
-        if (user['id'] == _currentUserId) {
-          _searchMessage = 'Anda tidak dapat menambahkan diri sendiri.';
+      if (user == null) {
+        _searchMessage = 'User "$username" tidak ditemukan.';
+      } else {
+        final status = await _friendService.getRelationStatus(_currentUserId!, user['id'] as int);
+        _searchRelation = status;
+        if (status == 'self') {
+          _searchMessage = 'Ini adalah akun Anda sendiri.';
         } else {
           _searchResult = user;
         }
-      } else {
-        _searchMessage = 'User "$username" tidak ditemukan.';
       }
     } catch (e) {
       _searchMessage = 'Terjadi error: $e';
@@ -82,20 +105,42 @@ class FriendsController extends ChangeNotifier {
     }
   }
 
-  Future<String> onAddFriend() async {
+  Future<String> onSendFriendRequest() async {
     if (_currentUserId == null || _searchResult == null) {
       return 'Terjadi error: User tidak valid.';
     }
-    final int friendId = _searchResult!['id'];
-    final String username = _searchResult!['username'];
+    final receiverId = _searchResult!['id'] as int;
     try {
-      await _friendService.addFriend(_currentUserId!, friendId);
-      _searchResult = null;
+      await _friendService.sendFriendRequest(_currentUserId!, receiverId);
+      await _loadOutgoingRequests();
+      _searchRelation = 'pending_out';
       notifyListeners();
-      await _loadFriends();
-      return '$username berhasil ditambahkan!';
+      return 'Permintaan pertemanan dikirim.';
     } catch (e) {
-      return 'Gagal: ${e.toString().replaceFirst("Exception: ", "")}';
+      return e.toString().replaceFirst('Exception: ', '');
+    }
+  }
+
+  Future<String> onAcceptFriend(int requesterId) async {
+    if (_currentUserId == null) return 'Terjadi error: User tidak valid.';
+    try {
+      await _friendService.acceptFriendRequest(requesterId, _currentUserId!);
+      await _loadFriends();
+      await _loadPendingRequests();
+      return 'Permintaan diterima.';
+    } catch (e) {
+      return 'Gagal menerima: $e';
+    }
+  }
+
+  Future<String> onRejectFriend(int requesterId) async {
+    if (_currentUserId == null) return 'Terjadi error: User tidak valid.';
+    try {
+      await _friendService.rejectFriendRequest(requesterId, _currentUserId!);
+      await _loadPendingRequests();
+      return 'Permintaan ditolak.';
+    } catch (e) {
+      return 'Gagal menolak: $e';
     }
   }
 
