@@ -13,11 +13,11 @@ class FavoritesController extends ChangeNotifier {
 
   Future<void> loadFavorites() async {
     _isLoading = true;
-    notifyListeners(); // Beri tahu UI -> "Loading..."
+    notifyListeners();
 
     _favorites = await _service.getFavorites();
     _isLoading = false;
-    notifyListeners(); // Beri tahu UI -> "Data sudah siap"
+    notifyListeners(); 
   }
 
   Future<void> addToFavorites(EventModel event) async {

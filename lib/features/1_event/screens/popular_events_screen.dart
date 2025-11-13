@@ -1,7 +1,6 @@
 import 'package:eventfinder/core/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../models/event_model.dart';
 import 'event_detail_screen.dart';
 

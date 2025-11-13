@@ -67,7 +67,7 @@ class _DeveloperInfoScreenState extends State<DeveloperInfoScreen>
                   child: CircleAvatar(
                     radius: 75,
                     backgroundColor: Colors.white,
-                    backgroundImage: AssetImage('assets/images/dev_profile.jpg'),
+                    backgroundImage: AssetImage('assets/images/najwa.jpg'),
                   ),
                 );
               },

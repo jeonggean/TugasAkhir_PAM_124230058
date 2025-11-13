@@ -4,6 +4,7 @@ import '../../../core/services/database_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../1_event/models/event_model.dart';
 import '../../2_auth/services/auth_service.dart';
+import '../model/favorites_model.dart';
 
 class FavoritesService {
   final AuthService _authService = AuthService();
@@ -22,16 +23,15 @@ class FavoritesService {
       'favorites',
       where: 'userId = ?',
       whereArgs: [userId],
-      orderBy: 'id DESC', // Tampilkan yang terbaru di atas
+      orderBy: 'id DESC',
     );
 
-    if (maps.isEmpty) {
-      return [];
-    }
+    if (maps.isEmpty) return [];
 
     return maps.map((map) {
       final String eventJson = map['eventJson'];
-      return EventModel.fromJson(jsonDecode(eventJson));
+      final favorite = FavoriteModel.fromJson(jsonDecode(eventJson));
+      return favorite.toEventModel(); // konversi ke EventModel untuk UI
     }).toList();
   }
 
@@ -40,12 +40,12 @@ class FavoritesService {
     if (userId == null) throw Exception("User not logged in");
 
     final db = await _db;
-    final String eventJson = jsonEncode(event.toJson());
+    final favorite = FavoriteModel.fromEvent(event);
+    final String eventJson = jsonEncode(favorite.toJson());
 
-    // Show notification when adding to favorites
     await NotificationService.showNotification(
       "Event Ditambahkan ke Favorit",
-      "Event '${event.name}' telah ditambahkan ke daftar favorit Anda"
+      "Event '${event.name}' telah ditambahkan ke daftar favorit Anda",
     );
 
     try {
@@ -53,17 +53,17 @@ class FavoritesService {
         'favorites',
         {
           'userId': userId,
-          'eventId': event.id,
+          'eventId': favorite.id,
           'eventJson': eventJson,
         },
-        conflictAlgorithm: ConflictAlgorithm.ignore, // Abaikan jika sudah ada
+        conflictAlgorithm: ConflictAlgorithm.ignore,
       );
     } catch (e) {
       print("Error adding favorite: $e");
     }
   }
 
-  Future<void> removeFavorite(EventModel event) async {
+  Future<void> removeFavorite(dynamic eventId) async {
     final userId = await _getCurrentUserId();
     if (userId == null) throw Exception("User not logged in");
 
@@ -72,7 +72,7 @@ class FavoritesService {
       await db.delete(
         'favorites',
         where: 'userId = ? AND eventId = ?',
-        whereArgs: [userId, event.id],
+        whereArgs: [userId, eventId],
       );
     } catch (e) {
       print("Error removing favorite: $e");

@@ -45,6 +45,7 @@ class EventModel {
         return preferredImage?['url'] ?? fallbackImage;
       }
       return 'https://i.imgur.com/gA1q3nJ.png';
+      
     }
 
     int _hashString(String str) {

@@ -2,7 +2,7 @@ import 'package:eventfinder/core/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart'; // IMPORT
+import 'package:provider/provider.dart';
 import '../../1_event/models/event_model.dart';
 import '../../1_event/screens/event_detail_screen.dart';
 import '../controllers/favorites_controller.dart';
@@ -22,7 +22,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   @override
   void initState() {
     super.initState();
-    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<FavoritesController>(context, listen: false).loadFavorites();
+    });
     _searchController.addListener(() {
       setState(() {
         _searchQuery = _searchController.text;
@@ -71,27 +73,32 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             title: const Text('Hapus dari Favorit'),
             content: Text('Hapus "$name" dari daftar favorit?'),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-              TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Hapus', style: TextStyle(color: Colors.red))),
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Batal'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Hapus', style: TextStyle(color: Colors.red)),
+              ),
             ],
           ),
         ) ??
         false;
   }
 
-
   @override
   Widget build(BuildContext context) {
-    // Ganti widget terluar dengan Consumer
-    // Ia akan 'mendengar' FavoritesController
     return Consumer<FavoritesController>(
       builder: (context, controller, child) {
-        // 'controller' adalah instance yang didapat dari Provider
         return Scaffold(
           appBar: AppBar(
             title: Text(
               'Acara Favorit',
-              style: GoogleFonts.nunito(fontWeight: FontWeight.bold, color: Colors.white),
+              style: GoogleFonts.nunito(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             backgroundColor: AppColors.kPrimaryColor,
             foregroundColor: Colors.white,
@@ -115,7 +122,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           body: Column(
             children: [
               _buildSearchBar(),
-              // Oper 'controller' ke method _buildBody
               Expanded(child: _buildBody(controller)),
             ],
           ),
@@ -143,7 +149,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             prefixIcon: Icon(Icons.search, color: AppColors.kPrimaryColor),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
-                    icon: Icon(Icons.clear, color: AppColors.kSecondaryTextColor),
+                    icon: Icon(
+                      Icons.clear,
+                      color: AppColors.kSecondaryTextColor,
+                    ),
                     onPressed: () => _searchController.clear(),
                   )
                 : null,
@@ -159,7 +168,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget _buildBody(FavoritesController controller) {
     if (controller.isLoading) {
       return Center(
-          child: CircularProgressIndicator(color: AppColors.kPrimaryColor));
+        child: CircularProgressIndicator(color: AppColors.kPrimaryColor),
+      );
     }
 
     final List<EventModel> filteredFavorites;
@@ -179,7 +189,9 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               : 'Kamu belum punya acara favorit.',
           textAlign: TextAlign.center,
           style: GoogleFonts.nunito(
-              fontSize: 16, color: AppColors.kSecondaryTextColor),
+            fontSize: 16,
+            color: AppColors.kSecondaryTextColor,
+          ),
         ),
       );
     }
@@ -196,7 +208,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  // UBAH: Terima 'FavoritesController controller' sbg parameter
   Widget _buildSlidableCard(EventModel event, FavoritesController controller) {
     return Slidable(
       key: ValueKey(event.id ?? event.name),
@@ -208,10 +219,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
             onPressed: (context) async {
               final ok = await _confirmDelete(event.name);
               if (ok) {
-                // Gunakan controller dari parameter
                 await controller.removeFromFavorites(event.id ?? event.name);
-                // Tidak perlu panggil loadFavorites() lagi,
-                // controller akan panggil notifyListeners()
               }
             },
             backgroundColor: Colors.red.shade600,
@@ -225,11 +233,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         onTap: () async {
           await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => EventDetailScreen(event: event)),
+            MaterialPageRoute(
+              builder: (context) => EventDetailScreen(event: event),
+            ),
           );
         },
         child: Container(
-          // ... (UI Card Anda tetap sama)
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
@@ -268,7 +277,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -284,7 +296,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       const SizedBox(height: 6),
                       Row(
                         children: [
-                          const Icon(Icons.location_on, size: 14, color: Colors.grey),
+                          const Icon(
+                            Icons.location_on,
+                            size: 14,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -304,7 +320,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                          const Icon(
+                            Icons.calendar_today,
+                            size: 14,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -318,7 +338,10 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           ),
                           const Spacer(),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.kPrimaryColor.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8),
