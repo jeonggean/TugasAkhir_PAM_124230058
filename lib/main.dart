@@ -13,20 +13,16 @@ import 'features/5_profile/screens/developer_info_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
   await DatabaseService.instance.database;
   await NotificationService.initNotifications();
   await NotificationService.requestNotificationPermission();
   await initializeDateFormatting('id_ID', null);
   tz.initializeTimeZones();
-
-
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -88,14 +84,12 @@ class MyApp extends StatelessWidget {
 
 class SplashScreen extends StatefulWidget {
   SplashScreen({super.key});
-
   @override
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
 class _SplashScreenState extends State<SplashScreen> {
   final AuthService _authService = AuthService();
-
   @override
   void initState() {
     super.initState();
@@ -103,8 +97,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    await Future.delayed(const Duration(seconds: 1));
-
+    await Future.delayed(const Duration(seconds: 1)); //biar splash screennya ngga hilang cepet
     if (mounted) {
       if (await _authService.isLoggedIn()) {
         Navigator.pushReplacement(

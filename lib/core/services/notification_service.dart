@@ -29,7 +29,7 @@ class NotificationService {
 
   static Future<bool> _isAndroidPermissionGranted() async {
     return await _flutterLocalNotificationsPlugin
-            ?.resolvePlatformSpecificImplementation<
+            .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin
             >()
             ?.areNotificationsEnabled() ??
@@ -38,7 +38,7 @@ class NotificationService {
 
   static Future<bool> _requestAndroidNotificationsPermission() async {
     return await _flutterLocalNotificationsPlugin
-            ?.resolvePlatformSpecificImplementation<
+            .resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin
             >()
             ?.requestNotificationsPermission() ??
@@ -73,7 +73,6 @@ class NotificationService {
     }
   }
 
-  /// Show instant notification (untuk favorit)
   static Future<void> showNotification(String title, String body) async {
     if (kIsWeb) return;
 

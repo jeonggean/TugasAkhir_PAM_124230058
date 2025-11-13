@@ -363,25 +363,26 @@ class _FriendsScreenState extends State<FriendsScreen>
 
     return ListView.builder(
       itemCount: controller.friendsList.length,
+      padding: const EdgeInsets.fromLTRB(0, 4, 0, 8),
       itemBuilder: (context, i) {
         final f = controller.friendsList[i];
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          child: Slidable(
-            key: ValueKey(f['id']),
-            endActionPane: ActionPane(
-              motion: const DrawerMotion(),
-              extentRatio: 0.25,
-              children: [
-                SlidableAction(
-                  onPressed: (_) => _onRemoveFriend(controller, f['id'], f['username']), // <-- Gunakan controller
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  icon: Icons.delete_outline,
-                  label: 'Hapus',
-                ),
-              ],
-            ),
+        return Slidable(
+          key: ValueKey(f['id']),
+          endActionPane: ActionPane(
+            motion: const DrawerMotion(),
+            extentRatio: 0.3,
+            children: [
+              SlidableAction(
+                onPressed: (_) => _onRemoveFriend(controller, f['id'], f['username']), // <-- Gunakan controller
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                icon: Icons.delete_outline,
+                label: 'Hapus',
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Card(
               shape:
                   RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
