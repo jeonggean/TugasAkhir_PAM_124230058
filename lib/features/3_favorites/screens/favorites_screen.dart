@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../../1_event/controllers/event_controller.dart';
 import '../../1_event/models/event_model.dart';
 import '../../1_event/screens/event_detail_screen.dart';
 import '../../1_event/screens/popular_events_screen.dart';
@@ -80,15 +81,21 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
           floatingActionButton: FloatingActionButton(
             backgroundColor: AppColors.kPrimaryColor,
             onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PopularEventsScreen(
-                    popularEvents: controller.favorites, // Gunakan controller
-                    isLoading: false,
+              try {
+                final eventController = Provider.of<EventController>(context, listen: false);
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => PopularEventsScreen(
+                      popularEvents: eventController.popularEventsGlobal,
+                      isLoading: eventController.isLoadingPopular,
+                    ),
                   ),
-                ),
-              );
+                );
+              } catch (e) {
+                // Jika EventController tidak tersedia, navigasi ke event list screen
+                await Navigator.pushNamed(context, '/event_list');
+              }
             },
             child: const Icon(Icons.add, color: Colors.white),
           ),
@@ -104,7 +111,6 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Widget _buildSearchBar() {
-    // ... (Tidak ada perubahan di method ini)
     return Container(
       color: AppColors.kPrimaryColor,
       padding: const EdgeInsets.fromLTRB(24.0, 0, 24.0, 16.0),
@@ -137,14 +143,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     );
   }
 
-  // UBAH: Terima 'FavoritesController controller' sbg parameter
   Widget _buildBody(FavoritesController controller) {
     if (controller.isLoading) {
       return Center(
         child: CircularProgressIndicator(color: AppColors.kPrimaryColor),
       );
     }
-
     final List<EventModel> filteredFavorites;
     if (_searchQuery.isEmpty) {
       filteredFavorites = controller.favorites;

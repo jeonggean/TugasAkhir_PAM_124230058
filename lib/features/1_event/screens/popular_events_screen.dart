@@ -55,7 +55,10 @@ class _PopularEventsScreenState extends State<PopularEventsScreen> {
       appBar: AppBar(
         title: Text(
           'Acara Populer',
-          style: GoogleFonts.nunito(fontWeight: FontWeight.bold, color: Colors.white),
+          style: GoogleFonts.nunito(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         backgroundColor: AppColors.kPrimaryColor,
         foregroundColor: Colors.white,
@@ -88,7 +91,10 @@ class _PopularEventsScreenState extends State<PopularEventsScreen> {
             prefixIcon: Icon(Icons.search, color: AppColors.kPrimaryColor),
             suffixIcon: _searchQuery.isNotEmpty
                 ? IconButton(
-                    icon: Icon(Icons.clear, color: AppColors.kSecondaryTextColor),
+                    icon: Icon(
+                      Icons.clear,
+                      color: AppColors.kSecondaryTextColor,
+                    ),
                     onPressed: () {
                       _searchController.clear();
                     },
@@ -117,7 +123,11 @@ class _PopularEventsScreenState extends State<PopularEventsScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.search_off, size: 80, color: AppColors.kSecondaryTextColor),
+              Icon(
+                Icons.search_off,
+                size: 80,
+                color: AppColors.kSecondaryTextColor,
+              ),
               const SizedBox(height: 16),
               Text(
                 'No events found for "$_searchQuery"',
@@ -135,7 +145,11 @@ class _PopularEventsScreenState extends State<PopularEventsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.event_busy, size: 80, color: AppColors.kSecondaryTextColor),
+            Icon(
+              Icons.event_busy,
+              size: 80,
+              color: AppColors.kSecondaryTextColor,
+            ),
             const SizedBox(height: 16),
             Text(
               'No popular events found',

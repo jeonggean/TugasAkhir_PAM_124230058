@@ -35,17 +35,22 @@ class FriendsController extends ChangeNotifier {
   String? get searchRelation => _searchRelation;
 
   Future<void> loadInitialData() async {
-    if (_currentUserId != null) return; // Hindari loading ulang jika sudah ada data
     
     final id = await _authService.getCurrentUserId();
     if (id == null) return;
     _currentUserId = id;
+    _isLoadingFriends = true;
+    notifyListeners();
     await refreshData();
   }
 
   Future<void> loadCurrentUser() async {
     if (_currentUserId == null) return;
-    _currentUser = await _friendService.getUserById(_currentUserId!);
+    try {
+      _currentUser = await _friendService.getUserById(_currentUserId!);
+    } catch (e) {
+      print('Error loading current user: $e');
+    }
     notifyListeners();
   }
 
@@ -55,6 +60,10 @@ class FriendsController extends ChangeNotifier {
     notifyListeners();
     try {
       _friendsList = await _friendService.getFriends(_currentUserId!);
+      print('Friends loaded: ${_friendsList.length} friends');
+    } catch (e) {
+      print('Error loading friends: $e');
+      _friendsList = [];
     } finally {
       _isLoadingFriends = false;
       notifyListeners();
@@ -63,13 +72,23 @@ class FriendsController extends ChangeNotifier {
 
   Future<void> _loadPendingRequests() async {
     if (_currentUserId == null) return;
-    _pendingRequests = await _friendService.getPendingRequests(_currentUserId!);
+    try {
+      _pendingRequests = await _friendService.getPendingRequests(_currentUserId!);
+    } catch (e) {
+      print('Error loading pending requests: $e');
+      _pendingRequests = [];
+    }
     notifyListeners();
   }
 
   Future<void> _loadOutgoingRequests() async {
     if (_currentUserId == null) return;
-    _outgoingRequests = await _friendService.getOutgoingRequests(_currentUserId!);
+    try {
+      _outgoingRequests = await _friendService.getOutgoingRequests(_currentUserId!);
+    } catch (e) {
+      print('Error loading outgoing requests: $e');
+      _outgoingRequests = [];
+    }
     notifyListeners();
   }
 

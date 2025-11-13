@@ -16,16 +16,21 @@ class FriendsScreen extends StatefulWidget {
 
 class _FriendsScreenState extends State<FriendsScreen>
     with SingleTickerProviderStateMixin {
-  
-  late final TabController _tabController; 
+  late final TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   FriendsController? _friendsController;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _friendsController = Provider.of<FriendsController>(context, listen: false);
-  }
+void didChangeDependencies() {
+  super.didChangeDependencies();
+  _friendsController ??= Provider.of<FriendsController>(context, listen: false);
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) {
+      _friendsController?.refreshData();
+    }
+  });
+}
+
 
   @override
   void initState() {
@@ -34,7 +39,8 @@ class _FriendsScreenState extends State<FriendsScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _friendsController?.loadInitialData(); // Load data saat screen pertama kali dibuka
+      _friendsController
+          ?.loadInitialData(); // Load data saat screen pertama kali dibuka
       _friendsController?.addListener(_onStateChanged);
     });
   }
@@ -46,7 +52,6 @@ class _FriendsScreenState extends State<FriendsScreen>
       _searchController.clear();
     }
   }
-
 
   @override
   void dispose() {
@@ -92,16 +97,18 @@ class _FriendsScreenState extends State<FriendsScreen>
     SnackBarHelper.show(
       context,
       msg,
-      type: msg.contains("berhasil")
-          ? SnackBarType.info
-          : SnackBarType.error,
+      type: msg.contains("berhasil") ? SnackBarType.info : SnackBarType.error,
     );
   }
 
-  Future<void> _onRemoveFriend(FriendsController controller, int friendId, String username) async {
+  Future<void> _onRemoveFriend(
+    FriendsController controller,
+    int friendId,
+    String username,
+  ) async {
     final msg = await controller.onRemoveFriend(friendId, username);
     if (!mounted) return;
-    await controller.refreshData(); // Refresh data setelah menghapus teman
+    await controller.refreshData();
     SnackBarHelper.show(
       context,
       msg,
@@ -111,7 +118,6 @@ class _FriendsScreenState extends State<FriendsScreen>
     );
   }
 
-  // Method ini tidak perlu controller, jadi biarkan saja
   void _openFriendFavorites(int id, String username) {
     Navigator.push(
       context,
@@ -124,10 +130,8 @@ class _FriendsScreenState extends State<FriendsScreen>
 
   @override
   Widget build(BuildContext context) {
-    // --- GANTI WIDGET TERLUAR DENGAN CONSUMER ---
     return Consumer<FriendsController>(
       builder: (context, controller, child) {
-        
         // 'controller' sekarang didapat dari Provider
         final me = controller.currentUser;
         final leaderboard = <Map<String, dynamic>>[];
@@ -142,14 +146,20 @@ class _FriendsScreenState extends State<FriendsScreen>
         }
 
         // Gunakan 'controller' dari Provider
-        leaderboard.addAll(controller.friendsList.map((f) => {
+        leaderboard.addAll(
+          controller.friendsList.map(
+            (f) => {
               'id': f['id'],
               'username': f['username'],
               'points': f['points'] ?? 0,
               'isMe': false,
-            }));
+            },
+          ),
+        );
 
-        leaderboard.sort((a, b) => (b['points'] as int).compareTo(a['points'] as int));
+        leaderboard.sort(
+          (a, b) => (b['points'] as int).compareTo(a['points'] as int),
+        );
         final top3 = leaderboard.take(3).toList();
 
         return Scaffold(
@@ -158,41 +168,58 @@ class _FriendsScreenState extends State<FriendsScreen>
             backgroundColor: AppColors.kPrimaryColor,
             elevation: 0,
           ),
-          body: Column(
-            children: [
-              _buildLeaderboard(top3), // UI Leaderboard tetap sama
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                // Oper 'controller' ke search bar
-                child: _buildSearchBar(controller), 
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                // Oper 'controller' ke search result
-                child: _buildSearchResult(controller), 
-              ),
-              TabBar(
-                controller: _tabController, // <-- Pakai _tabController dari State
-                labelStyle: GoogleFonts.nunito(fontWeight: FontWeight.bold),
-                labelColor: AppColors.kPrimaryColor,
-                unselectedLabelColor: Colors.grey,
-                indicatorColor: AppColors.kPrimaryColor,
-                tabs: const [
-                  Tab(text: "Teman Saya"),
-                  Tab(text: "Permintaan Teman"),
-                ],
-              ),
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController, // <-- Pakai _tabController dari State
-                  children: [
-                    // Oper 'controller' ke tab
-                    _buildFriendsTab(controller), 
-                    _buildRequestsTab(controller),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              await controller.refreshData();
+            },
+            color: AppColors.kPrimaryColor,
+            child: Column(
+              children: [
+                if (me == null || controller.isLoadingFriends)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    child: const Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                else
+                  _buildLeaderboard(top3),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  // Oper 'controller' ke search bar
+                  child: _buildSearchBar(controller),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  // Oper 'controller' ke search result
+                  child: _buildSearchResult(controller),
+                ),
+                TabBar(
+                  controller:
+                      _tabController, // <-- Pakai _tabController dari State
+                  labelStyle: GoogleFonts.nunito(fontWeight: FontWeight.bold),
+                  labelColor: AppColors.kPrimaryColor,
+                  unselectedLabelColor: Colors.grey,
+                  indicatorColor: AppColors.kPrimaryColor,
+                  tabs: const [
+                    Tab(text: "Teman Saya"),
+                    Tab(text: "Permintaan Teman"),
                   ],
                 ),
-              ),
-            ],
+                Expanded(
+                  child: TabBarView(
+                    controller:
+                        _tabController, 
+                    children: [
+                      // Oper 'controller' ke tab
+                      _buildFriendsTab(controller),
+                      _buildRequestsTab(controller),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
@@ -217,7 +244,10 @@ class _FriendsScreenState extends State<FriendsScreen>
           Text(
             'Leaderboard Teman',
             style: GoogleFonts.nunito(
-                fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
           const SizedBox(height: 16),
           Row(
@@ -240,13 +270,15 @@ class _FriendsScreenState extends State<FriendsScreen>
   }
 
   Widget _buildEmptyRank(int rank) => Column(
-        children: [
-          const CircleAvatar(radius: 36, backgroundColor: Colors.white24),
-          const SizedBox(height: 8),
-          Text('#$rank',
-              style: const TextStyle(color: Colors.white70, fontSize: 12)),
-        ],
-      );
+    children: [
+      const CircleAvatar(radius: 36, backgroundColor: Colors.white24),
+      const SizedBox(height: 8),
+      Text(
+        '#$rank',
+        style: const TextStyle(color: Colors.white70, fontSize: 12),
+      ),
+    ],
+  );
 
   Widget _buildRankCard({
     required int rank,
@@ -264,9 +296,13 @@ class _FriendsScreenState extends State<FriendsScreen>
           ),
         ),
         const SizedBox(height: 8),
-        Text(name,
-            style: GoogleFonts.nunito(
-                color: Colors.white, fontWeight: FontWeight.w600)),
+        Text(
+          name,
+          style: GoogleFonts.nunito(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         Text('$points pts', style: GoogleFonts.nunito(color: Colors.white70)),
       ],
     );
@@ -280,9 +316,10 @@ class _FriendsScreenState extends State<FriendsScreen>
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4)),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: TextField(
@@ -291,8 +328,10 @@ class _FriendsScreenState extends State<FriendsScreen>
         cursorColor: Colors.black,
         decoration: InputDecoration(
           hintText: 'Cari teman...',
-          hintStyle:
-              GoogleFonts.nunito(color: Colors.grey.shade500, fontSize: 15),
+          hintStyle: GoogleFonts.nunito(
+            color: Colors.grey.shade500,
+            fontSize: 15,
+          ),
           prefixIcon: Icon(Icons.search, color: AppColors.kPrimaryColor),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
@@ -320,18 +359,21 @@ class _FriendsScreenState extends State<FriendsScreen>
       Widget trailing;
       if (rel == 'none') {
         trailing = IconButton(
-            icon: const Icon(Icons.person_add, color: Colors.green),
-            onPressed: () => _sendFriendRequest(controller)); // <-- Gunakan controller
+          icon: const Icon(Icons.person_add, color: Colors.green),
+          onPressed: () => _sendFriendRequest(controller),
+        ); // <-- Gunakan controller
       } else if (rel == 'pending_out') {
         trailing = Chip(
-            label: const Text("Menunggu"),
-            backgroundColor: Colors.orange.shade50,
-            labelStyle: const TextStyle(color: Colors.orange));
+          label: const Text("Menunggu"),
+          backgroundColor: Colors.orange.shade50,
+          labelStyle: const TextStyle(color: Colors.orange),
+        );
       } else if (rel == 'friends') {
         trailing = Chip(
-            label: const Text("Berteman"),
-            backgroundColor: Colors.green.shade50,
-            labelStyle: const TextStyle(color: Colors.green));
+          label: const Text("Berteman"),
+          backgroundColor: Colors.green.shade50,
+          labelStyle: const TextStyle(color: Colors.green),
+        );
       } else {
         trailing = const SizedBox.shrink();
       }
@@ -340,8 +382,10 @@ class _FriendsScreenState extends State<FriendsScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: ListTile(
           leading: const CircleAvatar(child: Icon(Icons.person)),
-          title: Text(s['username'],
-              style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
+          title: Text(
+            s['username'],
+            style: GoogleFonts.nunito(fontWeight: FontWeight.w600),
+          ),
           subtitle: Text("Points: ${s['points']}", style: GoogleFonts.nunito()),
           trailing: trailing,
         ),
@@ -373,7 +417,11 @@ class _FriendsScreenState extends State<FriendsScreen>
             extentRatio: 0.3,
             children: [
               SlidableAction(
-                onPressed: (_) => _onRemoveFriend(controller, f['id'], f['username']), // <-- Gunakan controller
+                onPressed: (_) => _onRemoveFriend(
+                  controller,
+                  f['id'],
+                  f['username'],
+                ), // <-- Gunakan controller
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
                 icon: Icons.delete_outline,
@@ -384,17 +432,20 @@ class _FriendsScreenState extends State<FriendsScreen>
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             child: Card(
-              shape:
-                  RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: ListTile(
-                leading:
-                    const CircleAvatar(child: Icon(Icons.person_outline)),
-                title: Text(f['username'],
-                    style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
-                subtitle: Text('Points: ${f['points']}',
-                    style: GoogleFonts.nunito(fontSize: 14)),
-                onTap: () =>
-                    _openFriendFavorites(f['id'], f['username']),
+                leading: const CircleAvatar(child: Icon(Icons.person_outline)),
+                title: Text(
+                  f['username'],
+                  style: GoogleFonts.nunito(fontWeight: FontWeight.w600),
+                ),
+                subtitle: Text(
+                  'Points: ${f['points']}',
+                  style: GoogleFonts.nunito(fontSize: 14),
+                ),
+                onTap: () => _openFriendFavorites(f['id'], f['username']),
               ),
             ),
           ),
@@ -414,23 +465,31 @@ class _FriendsScreenState extends State<FriendsScreen>
       itemBuilder: (context, i) {
         final req = controller.pendingRequests[i];
         return Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
           child: ListTile(
             leading: const CircleAvatar(child: Icon(Icons.person_add_alt_1)),
-            title: Text(req['username'],
-                style: GoogleFonts.nunito(fontWeight: FontWeight.w600)),
-            subtitle:
-                Text("Points: ${req['points']}", style: GoogleFonts.nunito()),
+            title: Text(
+              req['username'],
+              style: GoogleFonts.nunito(fontWeight: FontWeight.w600),
+            ),
+            subtitle: Text(
+              "Points: ${req['points']}",
+              style: GoogleFonts.nunito(),
+            ),
             trailing: Wrap(
               spacing: 8,
               children: [
                 IconButton(
-                    icon: const Icon(Icons.check_circle, color: Colors.green),
-                    onPressed: () => _accept(controller, req['id'])),
+                  icon: const Icon(Icons.check_circle, color: Colors.green),
+                  onPressed: () => _accept(controller, req['id']),
+                ),
                 IconButton(
-                    icon: const Icon(Icons.cancel, color: Colors.red),
-                    onPressed: () => _reject(controller, req['id'])), // <-- Gunakan controller
+                  icon: const Icon(Icons.cancel, color: Colors.red),
+                  onPressed: () => _reject(controller, req['id']),
+                ), // <-- Gunakan controller
               ],
             ),
           ),

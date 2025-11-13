@@ -8,6 +8,7 @@ import 'package:eventfinder/features/5_profile/screens/profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:eventfinder/core/utils/app_colors.dart';
+import 'package:eventfinder/features/1_event/controllers/event_controller.dart';
 
 class MainNavigationScreen extends StatelessWidget {
   const MainNavigationScreen({super.key});
@@ -25,6 +26,9 @@ class MainNavigationScreen extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(
           create: (context) => MainNavigationController(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => EventController()..loadPopularGlobalEvents(),
         ),
         ChangeNotifierProvider(
           create: (context) => FavoritesController()..loadFavorites(),
