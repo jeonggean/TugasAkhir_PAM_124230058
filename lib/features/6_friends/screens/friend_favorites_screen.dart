@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../../1_event/models/event_model.dart';
 import '../../1_event/screens/event_detail_screen.dart';
+import '../../3_favorites/model/favorites_model.dart';
 import '../services/friend_service.dart';
 import '../../../core/utils/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -31,19 +32,21 @@ class _FriendFavoritesScreenState extends State<FriendFavoritesScreen> {
   }
 
   Future<List<EventModel>> _loadFriendFavorites() async {
-    final List<Map<String, dynamic>> favoriteRows =
-        await _friendService.getFavoritesForUser(widget.friendId);
-    
-    return favoriteRows.map((row) {
-      try {
-        final Map<String, dynamic> eventJson = jsonDecode(row['eventJson']);
-        return EventModel.fromJson(eventJson);
-      } catch (e) {
-        print('Error parsing event JSON: $e');
-        return null;
-      }
-    }).whereType<EventModel>().toList();
-  }
+  final List<Map<String, dynamic>> favoriteRows =
+      await _friendService.getFavoritesForUser(widget.friendId);
+  
+  return favoriteRows.map((row) {
+    try {
+      final Map<String, dynamic> eventJson = jsonDecode(row['eventJson']);
+      final fav = FavoriteModel.fromJson(eventJson);
+      return fav.toEventModel();
+    } catch (e) {
+      print('Error parsing event JSON: $e');
+      return null;
+    }
+  }).whereType<EventModel>().toList();
+}
+
 
   @override
   Widget build(BuildContext context) {

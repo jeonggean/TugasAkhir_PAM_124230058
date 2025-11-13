@@ -1,11 +1,8 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
-import '../../../core/utils/constants.dart';
+import '../../../core/services/ticketmaster_service.dart';
 import '../models/event_model.dart';
 
 class EventService {
-  final String _apiKey = Constants.ticketMasterApiKey;
-  final String _baseUrl = "https://app.ticketmaster.com/discovery/v2";
+  final TicketmasterService _ticketmasterService = TicketmasterService();
 
   Future<List<EventModel>> fetchEvents({
     String? latLong,
@@ -13,48 +10,17 @@ class EventService {
     String? keyword,
     String? radius,
   }) async {
-    Map<String, dynamic> params = {
-      'apikey': _apiKey,
-      'size': '40',
-      'sort': 'date,asc',
-      'classificationName': 'Music,Sports,Arts & Theatre',
-    };
-
-    if (keyword != null && keyword.isNotEmpty) {
-      params['keyword'] = keyword;
-    }
-
-    if (latLong != null) {
-      params['latlong'] = latLong;
-      params['radius'] = radius ?? '100';
-      params['unit'] = 'km';
-    }
-
-    if (countryCode != null) {
-      params['countryCode'] = countryCode;
-    }
-
-    final Uri uri =
-        Uri.parse("$_baseUrl/events.json").replace(queryParameters: params);
-
     try {
-      final response = await http.get(uri);
+      final events = await _ticketmasterService.fetchEvents(
+        latLong: latLong,
+        countryCode: countryCode,
+        keyword: keyword,
+        radius: radius,
+      );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = jsonDecode(response.body);
-        if (data.containsKey('_embedded') && data['_embedded'] != null) {
-          final List<dynamic> eventList = data['_embedded']['events'];
-          return eventList
-              .map((json) => EventModel.fromJson(json))
-              .toList();
-        }
-        return [];
-      } else {
-        print('HTTP Error: ${response.statusCode}');
-        print('HTTP Body: ${response.body}');
-        throw Exception(
-            'Gagal memuat data event (Status: ${response.statusCode})');
-      }
+      return events
+          .map((json) => EventModel.fromJson(json))
+          .toList();
     } catch (e) {
       print('Error fetching events: $e');
       throw Exception('Gagal memuat data event. Cek koneksi internet.');

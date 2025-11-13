@@ -1,9 +1,10 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../utils/constants.dart';
 
 class CurrencyService {
-  final String _apiKey = "a9eb08984412a4358456322b";
-  final String _baseUrl = "https://v6.exchangerate-api.com/v6";
+  final String _apiKey = Constants.currencyApiKey;
+  final String _baseUrl = Constants.currencyBaseUrl;
 
   Future<Map<String, dynamic>> getRates() async {
     final String url = "$_baseUrl/$_apiKey/latest/USD";
