@@ -3,13 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
+
 import '../../../core/utils/app_colors.dart';
+import '../../../core/utils/snackbar_helper.dart'; // Pastikan helper ini ada
 import '../services/post_service.dart';
-import '../../1_event/controllers/event_controller.dart';
 import '../../1_event/models/event_model.dart';
+import '../../3_favorites/services/favorites_service.dart'; // Service Favorit
 
 class CreatePostScreen extends StatefulWidget {
-  final String? preFilledEventName;
+  final String? preFilledEventName; 
 
   const CreatePostScreen({super.key, this.preFilledEventName});
 
@@ -19,56 +23,53 @@ class CreatePostScreen extends StatefulWidget {
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
   final _captionController = TextEditingController();
-
+  
   String? _selectedEventId;
-  String? _selectedEventName;
-
+  String? _selectedEventName; 
+  
   File? _imageFile;
   bool _isLoading = false;
   bool _isLoadingEvents = true;
 
   final ImagePicker _picker = ImagePicker();
   final PostService _postService = PostService();
-  final EventController _eventController = EventController();
+  final FavoritesService _favoritesService = FavoritesService(); 
 
-  List<EventModel> _pastEvents = [];
+  List<EventModel> _myEvents = []; 
 
   @override
   void initState() {
     super.initState();
-    _fetchPastPopularEvents();
+    _fetchMyFavoriteEvents();
   }
 
-  Future<void> _fetchPastPopularEvents() async {
+  // --- REVISI: AMBIL SEMUA FAVORIT (TANPA FILTER TANGGAL) ---
+  Future<void> _fetchMyFavoriteEvents() async {
     try {
-      await _eventController.loadPopularGlobalEvents();
-      final events = _eventController.popularEventsGlobal;
-      final now = DateTime.now();
-      final filtered = events.where((event) {
-        try {
-          final eventDate = DateTime.parse(event.localDate);
-          return eventDate.isBefore(now);
-        } catch (e) {
-          return false;
-        }
-      }).toList();
+      // 1. Ambil semua favorit dari database lokal
+      final events = await _favoritesService.getFavorites();
 
       if (mounted) {
         setState(() {
-          _pastEvents = filtered;
+          // 2. Langsung pakai semua data (TIDAK ADA FILTER TANGGAL LAGI)
+          _myEvents = events;
+          
+          // Logic Pre-filled (jika posting dari detail event)
           if (widget.preFilledEventName != null) {
-            final exists = _pastEvents.any((e) => e.name == widget.preFilledEventName);
+            final exists = _myEvents.any((e) => e.name == widget.preFilledEventName);
+            
             if (exists) {
-              final event = _pastEvents.firstWhere((e) => e.name == widget.preFilledEventName);
+              final event = _myEvents.firstWhere((e) => e.name == widget.preFilledEventName);
               _selectedEventId = event.id;
               _selectedEventName = event.name;
             }
           }
+          
           _isLoadingEvents = false;
         });
       }
     } catch (e) {
-      print("Error fetching events via controller: $e");
+      print("Error fetching favorites: $e");
       if (mounted) setState(() => _isLoadingEvents = false);
     }
   }
@@ -85,6 +86,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         source: source,
         imageQuality: 70,
       );
+      
       if (pickedFile != null) {
         setState(() {
           _imageFile = File(pickedFile.path);
@@ -92,9 +94,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal mengambil gambar: $e")),
-      );
+      SnackBarHelper.show(context, "Gagal mengambil gambar: $e", type: SnackBarType.error);
     }
   }
 
@@ -131,43 +131,45 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   Future<void> _submitPost() async {
     if (_imageFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Harap pilih foto terlebih dahulu!"), backgroundColor: Colors.redAccent),
-      );
+      SnackBarHelper.show(context, "Harap pilih foto terlebih dahulu!", type: SnackBarType.error);
       return;
     }
 
     if (_selectedEventName == null || _selectedEventName!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Harap pilih event!"), backgroundColor: Colors.redAccent),
-      );
+      SnackBarHelper.show(context, "Harap pilih event dari favoritmu!", type: SnackBarType.error);
       return;
     }
 
     setState(() => _isLoading = true);
 
     try {
+      // Simpan Foto ke Lokal (Aman dari Clear Cache)
+      final directory = await getApplicationDocumentsDirectory();
+      final String fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final String localPath = path.join(directory.path, fileName);
+
+      final File localImage = await _imageFile!.copy(localPath);
+
+      // Simpan ke Database
       await _postService.createPost(
-        eventId: _selectedEventName!,
-        imagePath: _imageFile!.path,
+        eventId: _selectedEventName!, 
+        imagePath: localImage.path,
         caption: _captionController.text.trim(),
       );
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Postingan berhasil! (+10 Poin)"),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
+      SnackBarHelper.show(
+        context, 
+        "Postingan berhasil! Selamat, Anda dapat +10 Poin! 🎉", 
+        type: SnackBarType.success
       );
+      
+      Navigator.pop(context, true); 
 
-      Navigator.pop(context, true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Gagal upload: $e"), backgroundColor: Colors.red),
-      );
+      if (!mounted) return;
+      SnackBarHelper.show(context, "Gagal upload: $e", type: SnackBarType.error);
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -191,6 +193,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // 1. Area Upload Foto
             GestureDetector(
               onTap: _showPickerOptions,
               child: Container(
@@ -206,7 +209,9 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       offset: const Offset(0, 4),
                     ),
                   ],
-                  image: _imageFile != null ? DecorationImage(image: FileImage(_imageFile!), fit: BoxFit.cover) : null,
+                  image: _imageFile != null
+                      ? DecorationImage(image: FileImage(_imageFile!), fit: BoxFit.cover)
+                      : null,
                 ),
                 child: _imageFile == null
                     ? Column(
@@ -230,6 +235,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     : null,
               ),
             ),
+            
             if (_imageFile != null)
               Padding(
                 padding: const EdgeInsets.only(top: 8.0),
@@ -241,58 +247,66 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   ),
                 ),
               ),
+
             const SizedBox(height: 24),
+
             Text("Detail Postingan", style: GoogleFonts.nunito(fontWeight: FontWeight.bold, fontSize: 18)),
             const SizedBox(height: 16),
-            _isLoadingEvents
-                ? const Center(child: LinearProgressIndicator(color: AppColors.kPrimaryColor))
-                : DropdownButtonFormField<String>(
-                    decoration: InputDecoration(
-                      labelText: "Pilih Event",
-                      hintText: "Pilih event yang kamu hadiri",
-                      prefixIcon: const Icon(Icons.event_available_rounded, color: AppColors.kPrimaryColor),
-                      filled: true,
-                      fillColor: Colors.white,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.kPrimaryColor, width: 2)),
-                    ),
-                    isExpanded: true,
-                    value: _selectedEventId,
-                    items: _pastEvents.isEmpty
-                        ? [
-                            const DropdownMenuItem(
-                              value: null,
-                              enabled: false,
-                              child: Text("Tidak ada event populer yang sudah selesai"),
-                            )
-                          ]
-                        : _pastEvents.map((event) {
-                            String dateStr = event.localDate;
-                            try {
-                              final dt = DateTime.parse(event.localDate);
-                              dateStr = DateFormat('dd MMM yyyy').format(dt);
-                            } catch (_) {}
-                            return DropdownMenuItem(
-                              value: event.id,
-                              child: Text(
-                                "${event.name} ($dateStr)",
-                                overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.nunito(fontSize: 14),
-                              ),
-                            );
-                          }).toList(),
-                    onChanged: _pastEvents.isEmpty
-                        ? null
-                        : (value) {
-                            setState(() {
-                              _selectedEventId = value;
-                              final event = _pastEvents.firstWhere((e) => e.id == value);
-                              _selectedEventName = event.name;
-                            });
-                          },
+            
+            // 2. DROPDOWN EVENT (SEMUA FAVORIT)
+            _isLoadingEvents 
+              ? const Center(child: LinearProgressIndicator(color: AppColors.kPrimaryColor))
+              : DropdownButtonFormField<String>(
+                  decoration: InputDecoration(
+                    labelText: "Pilih Event",
+                    hintText: "Pilih dari daftar favoritmu",
+                    prefixIcon: const Icon(Icons.favorite_rounded, color: AppColors.kPrimaryColor),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+                    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.kPrimaryColor, width: 2)),
                   ),
+                  isExpanded: true,
+                  value: _selectedEventId,
+                  items: _myEvents.isEmpty 
+                    ? [
+                        const DropdownMenuItem(
+                          value: null, 
+                          enabled: false,
+                          child: Text("Belum ada event favorit")
+                        )
+                      ] 
+                    : _myEvents.map((event) {
+                        // Format tanggal sekadar info tambahan di teks
+                        String dateStr = event.localDate;
+                        try {
+                           final dt = DateTime.parse(event.localDate);
+                           dateStr = DateFormat('dd MMM yyyy').format(dt);
+                        } catch (_) {}
+
+                        return DropdownMenuItem(
+                          value: event.id,
+                          child: Text(
+                            "${event.name} ($dateStr)",
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.nunito(fontSize: 14),
+                          ),
+                        );
+                      }).toList(),
+                  onChanged: _myEvents.isEmpty ? null : (value) {
+                    setState(() {
+                      _selectedEventId = value;
+                      // Ambil nama event untuk disimpan ke DB
+                      final event = _myEvents.firstWhere((e) => e.id == value);
+                      _selectedEventName = event.name;
+                    });
+                  },
+                ),
+            
             const SizedBox(height: 16),
+
+            // 3. Input Caption
             TextField(
               controller: _captionController,
               maxLines: 3,
@@ -311,7 +325,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.kPrimaryColor, width: 2)),
               ),
             ),
+
             const SizedBox(height: 32),
+
+            // 4. Tombol Submit
             SizedBox(
               height: 55,
               child: ElevatedButton(
@@ -323,8 +340,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        height: 24,
-                        width: 24,
+                        height: 24, width: 24,
                         child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
                       )
                     : Text(

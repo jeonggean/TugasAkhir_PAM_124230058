@@ -5,7 +5,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../controllers/friend_controller.dart';
-import 'friend_favorites_screen.dart';
+import '../../5_profile/screens/detailed_profile_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -21,16 +21,15 @@ class _FriendsScreenState extends State<FriendsScreen>
   FriendsController? _friendsController;
 
   @override
-void didChangeDependencies() {
-  super.didChangeDependencies();
-  _friendsController ??= Provider.of<FriendsController>(context, listen: false);
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (mounted) {
-      _friendsController?.refreshData();
-    }
-  });
-}
-
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _friendsController ??= Provider.of<FriendsController>(context, listen: false);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _friendsController?.refreshData();
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -39,8 +38,7 @@ void didChangeDependencies() {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _friendsController
-          ?.loadInitialData(); // Load data saat screen pertama kali dibuka
+      _friendsController?.loadInitialData();
       _friendsController?.addListener(_onStateChanged);
     });
   }
@@ -80,7 +78,7 @@ void didChangeDependencies() {
   Future<void> _accept(FriendsController controller, int requesterId) async {
     final msg = await controller.onAcceptFriend(requesterId);
     if (!mounted) return;
-    await controller.refreshData(); // Refresh data setelah menerima permintaan
+    await controller.refreshData();
     SnackBarHelper.show(
       context,
       msg,
@@ -93,7 +91,7 @@ void didChangeDependencies() {
   Future<void> _reject(FriendsController controller, int requesterId) async {
     final msg = await controller.onRejectFriend(requesterId);
     if (!mounted) return;
-    await controller.refreshData(); // Refresh data setelah menolak permintaan
+    await controller.refreshData();
     SnackBarHelper.show(
       context,
       msg,
@@ -118,21 +116,22 @@ void didChangeDependencies() {
     );
   }
 
-  void _openFriendFavorites(int id, String username) {
-    Navigator.push(
+  void _openFriendProfile(int id) async {
+    await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) =>
-            FriendFavoritesScreen(friendId: id, friendUsername: username),
+        builder: (_) => DetailedProfileScreen(userId: id),
       ),
     );
+    if (mounted) {
+      _friendsController?.refreshData();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Consumer<FriendsController>(
       builder: (context, controller, child) {
-        // 'controller' sekarang didapat dari Provider
         final me = controller.currentUser;
         final leaderboard = <Map<String, dynamic>>[];
 
@@ -145,7 +144,6 @@ void didChangeDependencies() {
           });
         }
 
-        // Gunakan 'controller' dari Provider
         leaderboard.addAll(
           controller.friendsList.map(
             (f) => {
@@ -167,6 +165,8 @@ void didChangeDependencies() {
           appBar: AppBar(
             backgroundColor: AppColors.kPrimaryColor,
             elevation: 0,
+            title: const Text("Teman", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            centerTitle: true,
           ),
           body: RefreshIndicator(
             onRefresh: () async {
@@ -187,17 +187,14 @@ void didChangeDependencies() {
                   _buildLeaderboard(top3),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  // Oper 'controller' ke search bar
                   child: _buildSearchBar(controller),
                 ),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  // Oper 'controller' ke search result
                   child: _buildSearchResult(controller),
                 ),
                 TabBar(
-                  controller:
-                      _tabController, // <-- Pakai _tabController dari State
+                  controller: _tabController,
                   labelStyle: GoogleFonts.nunito(fontWeight: FontWeight.bold),
                   labelColor: AppColors.kPrimaryColor,
                   unselectedLabelColor: Colors.grey,
@@ -209,10 +206,8 @@ void didChangeDependencies() {
                 ),
                 Expanded(
                   child: TabBarView(
-                    controller:
-                        _tabController, 
+                    controller: _tabController,
                     children: [
-                      // Oper 'controller' ke tab
                       _buildFriendsTab(controller),
                       _buildRequestsTab(controller),
                     ],
@@ -226,7 +221,6 @@ void didChangeDependencies() {
     );
   }
 
-  // 🏆 Leaderboard (Tidak perlu controller)
   Widget _buildLeaderboard(List<Map<String, dynamic>> top3) {
     return Container(
       width: double.infinity,
@@ -270,15 +264,15 @@ void didChangeDependencies() {
   }
 
   Widget _buildEmptyRank(int rank) => Column(
-    children: [
-      const CircleAvatar(radius: 36, backgroundColor: Colors.white24),
-      const SizedBox(height: 8),
-      Text(
-        '#$rank',
-        style: const TextStyle(color: Colors.white70, fontSize: 12),
-      ),
-    ],
-  );
+        children: [
+          const CircleAvatar(radius: 36, backgroundColor: Colors.white24),
+          const SizedBox(height: 8),
+          Text(
+            '#$rank',
+            style: const TextStyle(color: Colors.white70, fontSize: 12),
+          ),
+        ],
+      );
 
   Widget _buildRankCard({
     required int rank,
@@ -308,7 +302,6 @@ void didChangeDependencies() {
     );
   }
 
-  // 🔍 Search bar (Perlu controller)
   Widget _buildSearchBar(FriendsController controller) {
     return Container(
       decoration: BoxDecoration(
@@ -336,12 +329,11 @@ void didChangeDependencies() {
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 16),
         ),
-        onSubmitted: (_) => _onSearchUser(controller), // <-- Gunakan controller
+        onSubmitted: (_) => _onSearchUser(controller),
       ),
     );
   }
 
-  // 🔎 Hasil pencarian (Perlu controller)
   Widget _buildSearchResult(FriendsController controller) {
     if (controller.isSearching) {
       return const Center(child: CircularProgressIndicator());
@@ -361,7 +353,7 @@ void didChangeDependencies() {
         trailing = IconButton(
           icon: const Icon(Icons.person_add, color: Colors.green),
           onPressed: () => _sendFriendRequest(controller),
-        ); // <-- Gunakan controller
+        );
       } else if (rel == 'pending_out') {
         trailing = Chip(
           label: const Text("Menunggu"),
@@ -394,7 +386,6 @@ void didChangeDependencies() {
     return const SizedBox.shrink();
   }
 
-  // 👥 Tab: Teman Saya (Perlu controller)
   Widget _buildFriendsTab(FriendsController controller) {
     if (controller.isLoadingFriends) {
       return const Center(child: CircularProgressIndicator());
@@ -421,7 +412,7 @@ void didChangeDependencies() {
                   controller,
                   f['id'],
                   f['username'],
-                ), // <-- Gunakan controller
+                ),
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
                 icon: Icons.delete_outline,
@@ -445,7 +436,7 @@ void didChangeDependencies() {
                   'Points: ${f['points']}',
                   style: GoogleFonts.nunito(fontSize: 14),
                 ),
-                onTap: () => _openFriendFavorites(f['id'], f['username']),
+                onTap: () => _openFriendProfile(f['id']),
               ),
             ),
           ),
@@ -454,7 +445,6 @@ void didChangeDependencies() {
     );
   }
 
-  // 📨 Tab: Permintaan Teman (Perlu controller)
   Widget _buildRequestsTab(FriendsController controller) {
     if (controller.pendingRequests.isEmpty) {
       return const Center(child: Text('Belum ada permintaan pertemanan.'));
@@ -489,7 +479,7 @@ void didChangeDependencies() {
                 IconButton(
                   icon: const Icon(Icons.cancel, color: Colors.red),
                   onPressed: () => _reject(controller, req['id']),
-                ), // <-- Gunakan controller
+                ),
               ],
             ),
           ),
