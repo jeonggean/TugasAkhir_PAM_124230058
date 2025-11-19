@@ -1,15 +1,14 @@
-import 'dart:math';
 import 'package:eventfinder/core/utils/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../2_auth/services/auth_service.dart';
 import '../../2_auth/screens/login_screen.dart';
 import '../models/badge_model.dart';
-import '../../../features/6_friends/services/friend_service.dart ';
+import '../../../features/6_friends/services/friend_service.dart';
 import 'about_screen.dart';
 import 'developer_info_screen.dart';
 import 'feedback_screen.dart';
-import 'redeem_code_screen.dart';
+import 'detailed_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -18,21 +17,16 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _authService = AuthService();
   final FriendService _friendService = FriendService();
 
   late Future<Map<String, dynamic>> _userDataFuture;
-  late AnimationController _badgeController;
 
   @override
   void initState() {
     super.initState();
     _userDataFuture = _loadUserData();
-    _badgeController =
-        AnimationController(vsync: this, duration: const Duration(seconds: 3))
-          ..repeat(reverse: true);
   }
 
   Future<Map<String, dynamic>> _loadUserData() async {
@@ -61,12 +55,13 @@ class _ProfileScreenState extends State<ProfileScreen>
         content: const Text("Apakah Anda yakin ingin keluar dari akun ini?"),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text("Batal")),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Batal"),
+          ),
           TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text("Keluar",
-                  style: TextStyle(color: Colors.redAccent))),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Keluar", style: TextStyle(color: Colors.redAccent)),
+          ),
         ],
       ),
     );
@@ -76,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen>
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
+          MaterialPageRoute(builder: (context) =>LoginScreen()),
           (route) => false,
         );
       }
@@ -88,10 +83,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       context,
       PageRouteBuilder(
         pageBuilder: (_, __, ___) => screen,
-        transitionsBuilder: (_, animation, __, child) => FadeTransition(
-          opacity: animation,
-          child: child,
-        ),
+        transitionsBuilder: (_, animation, __, child) =>
+            FadeTransition(opacity: animation, child: child),
         transitionDuration: const Duration(milliseconds: 300),
       ),
     ).then((_) {
@@ -99,12 +92,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         _userDataFuture = _loadUserData();
       });
     });
-  }
-
-  @override
-  void dispose() {
-    _badgeController.dispose();
-    super.dispose();
   }
 
   @override
@@ -139,7 +126,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   }
 
   Widget _buildProfileHeader(
-      String username, int points, int friendsCount, BadgeInfo badge) {
+    String username,
+    int points,
+    int friendsCount,
+    BadgeInfo badge,
+  ) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -164,8 +155,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 child: CircleAvatar(
                   radius: 54,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.person,
-                      size: 60, color: AppColors.kPrimaryColor),
+                  child: Icon(Icons.person, size: 60, color: AppColors.kPrimaryColor),
                 ),
               ),
               const SizedBox(height: 18),
@@ -185,10 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(width: 4),
                   Text(
                     "$points Poin",
-                    style: GoogleFonts.nunito(
-                      color: Colors.white70,
-                      fontSize: 15,
-                    ),
+                    style: GoogleFonts.nunito(color: Colors.white70, fontSize: 15),
                   ),
                   const SizedBox(width: 16),
                   Icon(Icons.people_alt_rounded,
@@ -196,45 +183,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                   const SizedBox(width: 4),
                   Text(
                     "$friendsCount Teman",
-                    style: GoogleFonts.nunito(
-                      color: Colors.white70,
-                      fontSize: 15,
-                    ),
+                    style: GoogleFonts.nunito(color: Colors.white70, fontSize: 15),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              AnimatedBuilder(
-                animation: _badgeController,
-                builder: (context, child) {
-                  final pulse = 1 + 0.06 * sin(_badgeController.value * 2 * pi);
-                  return Transform.scale(
-                    scale: pulse,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(badge.icon, color: Colors.white, size: 18),
-                          const SizedBox(width: 8),
-                          Text(
-                            badge.name,
-                            style: GoogleFonts.nunito(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(badge.icon, color: Colors.white, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      badge.name,
+                      style: GoogleFonts.nunito(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
                       ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
             ],
           ),
@@ -262,9 +236,9 @@ class _ProfileScreenState extends State<ProfileScreen>
         child: Column(
           children: [
             _buildMenuTile(
-              icon: Icons.confirmation_number_outlined,
-              title: "Tukar Kode Voucher",
-              onTap: () => _navigateTo(const RedeemCodeScreen()),
+              icon: Icons.grid_view_rounded,
+              title: "Postingan & Profil Lengkap",
+              onTap: () => _navigateTo(const DetailedProfileScreen()),
               color: AppColors.kPrimaryColor,
             ),
             Divider(color: Colors.grey.shade300),
@@ -333,9 +307,8 @@ class _ProfileScreenState extends State<ProfileScreen>
                 style: GoogleFonts.nunito(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: isLogout
-                      ? Colors.redAccent
-                      : AppColors.kSecondaryTextColor,
+                  color:
+                      isLogout ? Colors.redAccent : AppColors.kSecondaryTextColor,
                 ),
               ),
             ),

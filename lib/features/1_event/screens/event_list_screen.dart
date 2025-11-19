@@ -19,7 +19,6 @@ class EventListScreen extends StatefulWidget {
 
 class _EventListScreenState extends State<EventListScreen> {
   late final EventController _controller;
-  final TextEditingController _searchController = TextEditingController();
   final LocationService _locationService = LocationService();
   final AuthService _authService = AuthService();
 
@@ -66,7 +65,6 @@ class _EventListScreenState extends State<EventListScreen> {
   @override
   void dispose() {
     _controller.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -232,51 +230,6 @@ class _EventListScreenState extends State<EventListScreen> {
                             ),
                           ),
                   ],
-                ),
-                const SizedBox(height: 18),
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(18),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    style: GoogleFonts.nunito(color: AppColors.kTextColor),
-                    decoration: InputDecoration(
-                      hintText: 'Cari acara, artis, atau lokasi...',
-                      hintStyle:
-                          GoogleFonts.nunito(color: AppColors.kSecondaryTextColor),
-                      prefixIcon:
-                          Icon(Icons.search, color: AppColors.kPrimaryColor),
-                      suffixIcon: _searchController.text.isNotEmpty
-                          ? IconButton(
-                              icon: Icon(Icons.clear,
-                                  color: AppColors.kSecondaryTextColor),
-                              onPressed: () {
-                                _searchController.clear();
-                                _controller.loadRegionalEvents();
-                                _controller.loadPopularGlobalEvents();
-                              },
-                            )
-                          : null,
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-                      border: InputBorder.none,
-                    ),
-                    onChanged: (value) => setState(() {}),
-                    onSubmitted: (keyword) {
-                      if (keyword.isNotEmpty) {
-                        _controller.searchEvents(keyword);
-                      }
-                    },
-                  ),
                 ),
               ],
             ),

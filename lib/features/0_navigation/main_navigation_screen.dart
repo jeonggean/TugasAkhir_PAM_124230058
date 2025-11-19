@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:eventfinder/core/utils/app_colors.dart';
 import 'package:eventfinder/features/1_event/controllers/event_controller.dart';
+import '../../features/4_post/screens/create_post_screen.dart';
 
 class MainNavigationScreen extends StatelessWidget {
   const MainNavigationScreen({super.key});
@@ -24,9 +25,7 @@ class MainNavigationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (context) => MainNavigationController(),
-        ),
+        ChangeNotifierProvider(create: (context) => MainNavigationController()),
         ChangeNotifierProvider(
           create: (context) => EventController()..loadPopularGlobalEvents(),
         ),
@@ -37,7 +36,7 @@ class MainNavigationScreen extends StatelessWidget {
           create: (context) => FriendsController()..loadInitialData(),
         ),
       ],
-    
+
       child: Consumer<MainNavigationController>(
         builder: (context, controller, child) {
           return Scaffold(
@@ -56,6 +55,7 @@ class MainNavigationScreen extends StatelessWidget {
                   activeIcon: Icon(Icons.favorite),
                   label: 'Favorit',
                 ),
+                
                 BottomNavigationBarItem(
                   icon: Icon(Icons.group_outlined),
                   activeIcon: Icon(Icons.group),

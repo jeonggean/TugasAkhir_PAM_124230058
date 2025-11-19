@@ -44,17 +44,6 @@ eventId TEXT NOT NULL,
  )
  ''');
 
-await db.execute('''
-      CREATE TABLE redeemed_codes (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        userId INTEGER NOT NULL,
-        code TEXT NOT NULL,
-        redeemedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE,
- UNIQUE(userId, code)
- )
-''');
-
  await db.execute('''
  CREATE TABLE friendships (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -67,6 +56,18 @@ FOREIGN KEY (receiverId) REFERENCES users (id) ON DELETE CASCADE,
 UNIQUE(requesterId, receiverId)
  )
   ''');
+
+await db.execute('''
+    CREATE TABLE posts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      userId INTEGER NOT NULL,
+      eventId TEXT NOT NULL,
+      imagePath TEXT NOT NULL,
+      caption TEXT,
+      createdAt TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (userId) REFERENCES users (id) ON DELETE CASCADE
+    )
+    ''');
 
 await db.execute('CREATE INDEX IF NOT EXISTS idx_friendships_req_rec ON friendships(requesterId, receiverId)');
 await db.execute('CREATE INDEX IF NOT EXISTS idx_friendships_status ON friendships(status)');

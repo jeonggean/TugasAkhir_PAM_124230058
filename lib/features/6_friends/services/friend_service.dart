@@ -4,6 +4,21 @@ import '../../../core/services/database_service.dart';
 class FriendService {
   Future<Database> get _db async => await DatabaseService.instance.database;
 
+  Future<Map<String, dynamic>?> getUserInfo(int userId) async {
+    final db = await _db;
+    final List<Map<String, dynamic>> result = await db.query(
+      'users',
+      columns: ['username', 'points'],
+      where: 'id = ?',
+      whereArgs: [userId],
+    );
+
+    if (result.isNotEmpty) {
+      return result.first;
+    }
+    return null;
+  }
+
   Future<Map<String, dynamic>?> findUserByUsername(String username) async {
     final db = await _db;
     final rows = await db.query(
@@ -15,6 +30,18 @@ class FriendService {
     );
     return rows.isNotEmpty ? rows.first : null;
   }
+  
+
+  Future<int> getAcceptedFriendCount(int userId) async {
+    final db = await _db;
+    final countResult = await db.rawQuery('''
+      SELECT COUNT(*) as count FROM friendships
+      WHERE (requesterId = ? OR receiverId = ?) AND status = 'accepted'
+    ''', [userId, userId]);
+    return countResult.first['count'] as int? ?? 0;
+  }
+  
+  
 
   Future<void> sendFriendRequest(int requesterId, int receiverId) async {
     if (requesterId == receiverId) {
