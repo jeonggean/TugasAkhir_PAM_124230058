@@ -9,6 +9,7 @@ import 'about_screen.dart';
 import 'developer_info_screen.dart';
 import 'feedback_screen.dart';
 import 'detailed_profile_screen.dart';
+import 'badges_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -239,6 +240,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.grid_view_rounded,
               title: "Postingan & Profil Lengkap",
               onTap: () => _navigateTo(const DetailedProfileScreen()),
+              color: AppColors.kPrimaryColor,
+            ),
+            Divider(color: Colors.grey.shade300),
+            _buildMenuTile(
+              icon: Icons.star_rate_rounded,
+              title: "Badge & Poin Saya",
+              onTap: () => _navigateTo(const BadgeInfoScreen()),
               color: AppColors.kPrimaryColor,
             ),
             Divider(color: Colors.grey.shade300),

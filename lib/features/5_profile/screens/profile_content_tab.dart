@@ -1,7 +1,7 @@
 import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../../../core/utils/app_colors.dart';
 import '../../1_event/widgets/event_card.dart';
 import '../../1_event/models/event_model.dart';
@@ -9,6 +9,7 @@ import '../../2_auth/services/auth_service.dart';
 import '../../3_favorites/services/favorites_service.dart';
 import '../../4_post/services/post_service.dart';
 import '../../6_friends/services/friend_service.dart';
+import '../../3_favorites/model/favorites_model.dart';
 
 class ProfileContentTab extends StatefulWidget {
   final int? userId;
@@ -54,11 +55,23 @@ class _ProfileContentTabState extends State<ProfileContentTab> {
           name = userMap?['username'] ?? "User";
         }
 
-        List<EventModel> favorites;
+        List<EventModel> favorites = [];
+        
         if (widget.userId == null) {
           favorites = await _favoritesService.getFavorites();
         } else {
-          favorites = [];
+          final List<Map<String, dynamic>> favoriteRows = 
+              await _friendService.getFavoritesForUser(targetUserId);
+
+          favorites = favoriteRows.map((row) {
+            try {
+              final Map<String, dynamic> eventJson = jsonDecode(row['eventJson']);
+              final favModel = FavoriteModel.fromJson(eventJson);
+              return favModel.toEventModel();
+            } catch (e) {
+              return null;
+            }
+          }).whereType<EventModel>().toList();
         }
 
         if (mounted) {
@@ -70,7 +83,7 @@ class _ProfileContentTabState extends State<ProfileContentTab> {
         }
       }
     } catch (e) {
-      print("Error: $e");
+      print("Error loading profile: $e");
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -83,15 +96,20 @@ class _ProfileContentTabState extends State<ProfileContentTab> {
     return TabBarView(
       controller: widget.tabController,
       children: [
+        // TAB 1: POSTINGAN
         _posts.isEmpty
             ? const Center(child: Text("Belum ada postingan"))
             : ListView.separated(
                 padding: const EdgeInsets.all(24),
                 itemCount: _posts.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 24),
-                itemBuilder: (context, index) =>
-                    _buildOverlayPost(_posts[index]),
+                separatorBuilder: (context, index) => const SizedBox(height: 24),
+                itemBuilder: (context, index) {
+                  final post = _posts[index];
+                  return _buildOverlayPost(post);
+                },
               ),
+
+        // TAB 2: FAVORIT
         _favorites.isEmpty
             ? const Center(child: Text("Belum ada favorit"))
             : ListView.builder(
@@ -105,14 +123,6 @@ class _ProfileContentTabState extends State<ProfileContentTab> {
   }
 
   Widget _buildOverlayPost(Map<String, dynamic> post) {
-    String dateStr = "";
-    try {
-      final dt = DateTime.parse(post['createdAt']);
-      dateStr = DateFormat('d MMM yyyy').format(dt);
-    } catch (_) {
-      dateStr = post['createdAt'].toString().substring(0, 10);
-    }
-
     return Container(
       height: 350,
       width: double.infinity,
@@ -131,43 +141,18 @@ class _ProfileContentTabState extends State<ProfileContentTab> {
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
+            // GAMBAR
             if (post['imagePath'] != null)
               Positioned.fill(
                 child: Image.file(
                   File(post['imagePath']),
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const Center(child: Icon(Icons.broken_image)),
+                  errorBuilder: (c, e, s) =>
+                      const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
                 ),
               ),
-            Positioned(
-              top: 16,
-              right: 16,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.4),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: Colors.white.withOpacity(0.2), width: 1),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.calendar_today_outlined,
-                        size: 12, color: Colors.white),
-                    const SizedBox(width: 6),
-                    Text(
-                      dateStr,
-                      style: GoogleFonts.nunito(
-                          color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+
+            // KONTEN TEXT
             Positioned(
               bottom: 20,
               left: 20,
@@ -180,8 +165,7 @@ class _ProfileContentTabState extends State<ProfileContentTab> {
                       const CircleAvatar(
                         radius: 12,
                         backgroundColor: Colors.white,
-                        child: Icon(Icons.person,
-                            size: 16, color: Colors.grey),
+                        child: Icon(Icons.person, size: 16, color: Colors.grey),
                       ),
                       const SizedBox(width: 8),
                       Text(
@@ -201,6 +185,8 @@ class _ProfileContentTabState extends State<ProfileContentTab> {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  
+                  // 🔥 INI BAGIAN YANG DIPERBAIKI 🔥
                   Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 10, vertical: 4),
@@ -215,15 +201,18 @@ class _ProfileContentTabState extends State<ProfileContentTab> {
                       ],
                     ),
                     child: Text(
-                      post['eventName'] ?? 'Unknown Event',
+                      // GUNAKAN 'eventId' BUKAN 'event_name'
+                      post['eventId'] ?? 'Unknown Event', 
                       style: GoogleFonts.nunito(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12),
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+
                   const SizedBox(height: 8),
                   Text(
                     post['caption'] ?? "",

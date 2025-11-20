@@ -26,7 +26,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Event Finder (MVC)',
+      title: 'Event Finder',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.light().copyWith(
         scaffoldBackgroundColor: AppColors.kBackgroundColor,

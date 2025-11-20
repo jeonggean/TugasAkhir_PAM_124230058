@@ -23,7 +23,10 @@ class _FriendsScreenState extends State<FriendsScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _friendsController ??= Provider.of<FriendsController>(context, listen: false);
+    _friendsController ??= Provider.of<FriendsController>(
+      context,
+      listen: false,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _friendsController?.refreshData();
@@ -119,9 +122,7 @@ class _FriendsScreenState extends State<FriendsScreen>
   void _openFriendProfile(int id) async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => DetailedProfileScreen(userId: id),
-      ),
+      MaterialPageRoute(builder: (_) => DetailedProfileScreen(userId: id)),
     );
     if (mounted) {
       _friendsController?.refreshData();
@@ -165,7 +166,13 @@ class _FriendsScreenState extends State<FriendsScreen>
           appBar: AppBar(
             backgroundColor: AppColors.kPrimaryColor,
             elevation: 0,
-            title: const Text("Teman", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            title: const Text(
+              "Teman",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
             centerTitle: true,
           ),
           body: RefreshIndicator(
@@ -179,9 +186,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   Container(
                     width: double.infinity,
                     padding: const EdgeInsets.symmetric(vertical: 40),
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: const Center(child: CircularProgressIndicator()),
                   )
                 else
                   _buildLeaderboard(top3),
@@ -264,15 +269,15 @@ class _FriendsScreenState extends State<FriendsScreen>
   }
 
   Widget _buildEmptyRank(int rank) => Column(
-        children: [
-          const CircleAvatar(radius: 36, backgroundColor: Colors.white24),
-          const SizedBox(height: 8),
-          Text(
-            '#$rank',
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-        ],
-      );
+    children: [
+      const CircleAvatar(radius: 36, backgroundColor: Colors.white24),
+      const SizedBox(height: 8),
+      Text(
+        '#$rank',
+        style: const TextStyle(color: Colors.white70, fontSize: 12),
+      ),
+    ],
+  );
 
   Widget _buildRankCard({
     required int rank,
@@ -408,14 +413,12 @@ class _FriendsScreenState extends State<FriendsScreen>
             extentRatio: 0.3,
             children: [
               SlidableAction(
-                onPressed: (_) => _onRemoveFriend(
-                  controller,
-                  f['id'],
-                  f['username'],
-                ),
+                onPressed: (_) =>
+                    _onRemoveFriend(controller, f['id'], f['username']),
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
                 icon: Icons.delete_outline,
+                borderRadius: BorderRadius.circular(16),
                 label: 'Hapus',
               ),
             ],

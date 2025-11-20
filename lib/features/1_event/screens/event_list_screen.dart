@@ -9,6 +9,7 @@ import '../models/event_model.dart';
 import 'event_detail_screen.dart';
 import 'popular_events_screen.dart';
 import 'regional_events_screen.dart';
+import '../../5_profile/screens/detailed_profile_screen.dart';
 
 class EventListScreen extends StatefulWidget {
   EventListScreen({super.key});
@@ -129,7 +130,7 @@ class _EventListScreenState extends State<EventListScreen> {
     );
   }
 
-    Widget _buildPurpleHeader() {
+  Widget _buildPurpleHeader() {
     return Stack(
       children: [
         Container(
@@ -144,8 +145,9 @@ class _EventListScreenState extends State<EventListScreen> {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius:
-                const BorderRadius.vertical(bottom: Radius.circular(32)),
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(32),
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppColors.kPrimaryColor.withOpacity(0.25),
@@ -164,8 +166,11 @@ class _EventListScreenState extends State<EventListScreen> {
               children: [
                 Row(
                   children: [
-                    Icon(Icons.event_note_outlined,
-                        color: Colors.white, size: 30),
+                    Icon(
+                      Icons.event_note_outlined,
+                      color: Colors.white,
+                      size: 30,
+                    ),
                     const SizedBox(width: 10),
                     Text(
                       "EvenFinder",
@@ -176,11 +181,29 @@ class _EventListScreenState extends State<EventListScreen> {
                       ),
                     ),
                     const Spacer(),
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.white.withOpacity(0.2),
-                      child: Icon(Icons.person_outline,
-                          color: Colors.white, size: 22),
+                    InkWell(
+                      onTap: () {
+                        // Navigasi ke Halaman Profil Detail
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            // Pastikan DetailedProfileScreen sudah di-import
+                            builder: (context) => const DetailedProfileScreen(),
+                          ),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(
+                        50,
+                      ), // Biar efek kliknya bulat
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        child: const Icon(
+                          Icons.person_outline,
+                          color: Colors.white,
+                          size: 22,
+                        ),
+                      ),
                     ),
                   ],
                 ),
@@ -210,14 +233,19 @@ class _EventListScreenState extends State<EventListScreen> {
                 const SizedBox(height: 16),
                 Row(
                   children: [
-                    Icon(Icons.location_on,
-                        color: Colors.white.withOpacity(0.9), size: 20),
+                    Icon(
+                      Icons.location_on,
+                      color: Colors.white.withOpacity(0.9),
+                      size: 20,
+                    ),
                     const SizedBox(width: 6),
                     _isLocationLoading
                         ? Text(
                             "Mendeteksi lokasi...",
                             style: GoogleFonts.nunito(
-                                color: Colors.white, fontWeight: FontWeight.bold),
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           )
                         : Flexible(
                             child: Text(
@@ -238,7 +266,6 @@ class _EventListScreenState extends State<EventListScreen> {
       ],
     );
   }
-
 
   Widget _buildPopularEventsSection() {
     return Column(

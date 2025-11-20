@@ -42,8 +42,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     super.initState();
     _fetchMyFavoriteEvents();
   }
-
-  // --- REVISI: AMBIL SEMUA FAVORIT (TANPA FILTER TANGGAL) ---
   Future<void> _fetchMyFavoriteEvents() async {
     try {
       // 1. Ambil semua favorit dari database lokal
@@ -182,7 +180,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: Text("Buat Postingan", style: GoogleFonts.nunito(fontWeight: FontWeight.bold)),
+        title: Text("Buat Postingan", 
+          style: GoogleFonts.nunito(
+            fontWeight: FontWeight.bold,
+            color: Colors.white,)),
         backgroundColor: AppColors.kPrimaryColor,
         foregroundColor: Colors.white,
         elevation: 0,
