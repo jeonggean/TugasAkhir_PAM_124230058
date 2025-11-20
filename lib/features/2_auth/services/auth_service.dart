@@ -14,7 +14,6 @@ class AuthService {
     final db = await _db;
     final String hashedPassword =
         BCrypt.hashpw(password, BCrypt.gensalt());
-
     try {
       await db.insert(
         'users',

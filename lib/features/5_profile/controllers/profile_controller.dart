@@ -14,7 +14,6 @@ class ProfileController extends ChangeNotifier {
   int friendCount = 0;
   bool isLoading = true;
 
-  // Load Data User
   Future<void> loadUserProfile() async {
     isLoading = true;
     notifyListeners();
